@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    image: chabare/regular_dicers_bot
+    image: openalcoholics/regular_dicers_bot
     volumes:
       "./data/users.json:/usr/src/app/users.json"
       "./data/credentials.json:/usr/src/app/credentials.json"
