@@ -12,5 +12,19 @@ jobs:
     # deploy the image
     - run: docker push openalcoholics/regular_dicers_bot:latest-$CIRCLE_BRANCH
 
+  deploy:
+    machine: true
     # Update server image
     - run: curl -L "http://ec2-52-59-248-193.eu-central-1.compute.amazonaws.com:8080?key=$UPDATE_KEY"
+    only:
+      - develop
+      - master
+
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy
+        requires:
+          - build
