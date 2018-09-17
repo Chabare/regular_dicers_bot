@@ -2,6 +2,7 @@ import json
 import re
 import threading
 from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardRemove
 
 from .calendar import Calendar
 
@@ -46,9 +47,10 @@ class Bot:
         for positive_message in positive_messages:
             if re.match(positive_message, update.message.text.lower()):
                 self.calendar.create()
+                update.message.reply_text("🍹❤️", quote=True, reply_markup=ReplyKeyboardRemove(True))
         for negative_message in negative_messages:
             if re.match(negative_message, update.message.text.lower()):
-                update.message.reply_text("Shame on you", quote=True)
+                update.message.reply_text("Shame on you", quote=True, reply_markup=ReplyKeyboardRemove(True))
 
     def remind_user(self, update):
         self.updater.bot.send_message(chat_id=update.message.chat_id, text="Wer ist dabei?", reply_markup=self.attend_markup)
