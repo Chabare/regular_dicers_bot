@@ -41,8 +41,8 @@ class Bot:
                 self.updater.bot.send_message(chat_id=user, text="Wer ist dabei?", reply_markup=self.attend_markup)
 
     def check_participation_message(self, update):
-        positive_messages = ["^dabei$", "👍", "ja", "👌", "yes"]
-        negative_messages = ["^nicht dabei$", "👎"]
+        positive_messages = ["^dabei$", "👍", "ja", "👌", "yes", "+"]
+        negative_messages = ["^nicht dabei$", "👎", "nein", "-", "nope"]
         for positive_message in positive_messages:
             if re.match(positive_message, update.message.text.lower()):
                 self.calendar.create()
