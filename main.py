@@ -18,8 +18,11 @@ def start(token: str):
     bot = Bot(updater)
 
     dispatcher = updater.dispatcher
-    dispatcher.add_handler(CommandHandler("register", lambda _, u: bot.register(u)))
-    dispatcher.add_handler(CommandHandler("remind", lambda b, u: bot.remind_users()))
+    dispatcher.add_handler(CommandHandler("register", lambda _, update: bot.register(update)))
+    dispatcher.add_handler(CommandHandler("remind_all", lambda _, update: bot.remind_users(update)))
+    dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_user(update)))
+    dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id, text="[{}]".format(update.message.chat_id))))
+    dispatcher.add_handler(MessageHandler("", callback=lambda _, update: bot.check_participation_message(update)))
 
     with open("users.json") as f:
         bot.user_ids = set(json.load(f))
