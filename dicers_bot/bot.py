@@ -41,10 +41,14 @@ class Bot:
                 self.updater.bot.send_message(chat_id=user, text="Wer ist dabei?", reply_markup=self.attend_markup)
 
     def check_participation_message(self, update):
-        if re.match("(?i)^Dabei$", update.message.text):
-            self.calendar.create()
-        elif re.match("(?i)^Nicht dabei$", update.message.text):
-            update.message.reply_text()
+        positive_messages = ["^dabei$", "👍", "ja", "👌", "yes"]
+        negative_messages = ["^nicht dabei$", "👎"]
+        for positive_message in positive_messages:
+            if re.match(positive_message, update.message.text.lower()):
+                self.calendar.create()
+        for negative_message in negative_messages:
+            if re.match(negative_message, update.message.text.lower()):
+                update.message.reply_text("Shame on you", quote=True)
 
     def remind_user(self, update):
         self.updater.bot.send_message(chat_id=update.message.chat_id, text="Wer ist dabei?", reply_markup=self.attend_markup)
