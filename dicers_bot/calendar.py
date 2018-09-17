@@ -23,6 +23,7 @@ base_event = {
 
 class Calendar:
     event = base_event
+    last_event = None
 
     def __init__(self, filename: str = "credentials.json"):
         store = file.Storage(filename)
@@ -34,9 +35,22 @@ class Calendar:
         self.service = build("calendar", "v3", http=credentials.authorize(Http()))
 
     def create(self):
+        if datetime.today().weekday() != 0:
+            print("Not monday ({})".format(datetime.today().weekday()))
+            return
         self.fill_base_event()
+
+        if self.last_event and self.event["start"]["dateTime"] == self.last_event["start"]["dateTime"]:
+            print("Event already exists(now | last): {} == {}".format(
+                self.event["start"]["dateTime"],
+                self.last_event["start"]["dateTime"])
+            )
+            return
+
         gevent = self.service.events().insert(calendarId="43httl0ouo48t260oqturfrs84@group.calendar.google.com",
                                               body=self.event).execute()
+        self.last_event = self.event
+        self.event = base_event
 
         return gevent.get("htmlLink")
 
