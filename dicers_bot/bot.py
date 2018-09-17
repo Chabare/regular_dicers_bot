@@ -13,7 +13,7 @@ class Bot:
     def __init__(self, updater):
         self.updater = updater
         self.user_ids = set()
-        self.attend_markup = ReplyKeyboardMarkup(self.custom_keyboard_attend)
+        self.attend_markup = ReplyKeyboardMarkup(self.custom_keyboard_attend, one_time_keyboard=True)
         self.calendar = Calendar()
 
     def register(self, update):
