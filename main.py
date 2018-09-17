@@ -29,6 +29,7 @@ def start(token: str):
 
     print("Running")
     updater.start_polling()
+    updater.idle()
 
 
 if __name__ == "__main__":
