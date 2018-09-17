@@ -1,37 +1,8 @@
 import threading
 
 import schedule
-import telegram
-from telegram.ext import CommandHandler, Updater
-
-
-class Bot:
-    custom_keyboard_attend = [["Dabei"], ["Nicht dabei"]]
-
-    def __init__(self, updater):
-        self.updater = updater
-        self.user_ids = set()
-        self.attend_markup = telegram.ReplyKeyboardMarkup(self.custom_keyboard_attend)
-
-    def register(self, update):
-        try:
-            user = update.message.chat_id
-            original_length = len(self.user_ids)
-            self.user_ids.add(user)
-
-            with open("users.json", "w+") as f:
-                json.dump(list(self.user_ids), f)
-
-            if len(self.user_ids) == original_length:
-                self.updater.bot.send_message(chat_id=user, text="Why would you register twice, dumbass!")
-            else:
-                self.updater.bot.send_message(chat_id=user, text="You have been registered.")
-        except Exception as e:
-            print(e)
-
-    def remind_users(self):
-        for user in self.user_ids:
-            self.updater.bot.send_message(chat_id=user, text="Wer ist dabei?", reply_markup=self.attend_markup)
+from dicers_bot import Bot
+from telegram.ext import CommandHandler, MessageHandler, Updater
 
 
 def run_scheduler(bot):
