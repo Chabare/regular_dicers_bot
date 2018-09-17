@@ -1,8 +1,11 @@
+import datetime
+import os
 import threading
 
 import schedule
-from dicers_bot import Bot
 from telegram.ext import CommandHandler, MessageHandler, Updater
+
+from dicers_bot import Bot
 
 
 def run_scheduler(bot):
@@ -21,11 +24,20 @@ def start(token: str):
     dispatcher.add_handler(CommandHandler("register", lambda _, update: bot.register(update)))
     dispatcher.add_handler(CommandHandler("remind_all", lambda _, update: bot.remind_users(update)))
     dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_user(update)))
-    dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id, text="[{}]".format(update.message.chat_id))))
+    dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
+                                                                                     text="[{}]".format(
+                                                                                         update.message.chat_id))))
+    dispatcher.add_handler(CommandHandler("server_time", lambda b, u: b.send_message(chat_id=update.message.chat_id,
+                                                                                     text=datetime.datetime.now().strftime(
+                                                                                         "%d-%m-%Y %H-%m-%S"))))
     dispatcher.add_handler(MessageHandler("", callback=lambda _, update: bot.check_participation_message(update)))
 
-    with open("users.json") as f:
-        bot.user_ids = set(json.load(f))
+    user_file = "users.json"
+    if os.path.exists(user_file):
+        with open(user_file) as f:
+            bot.user_ids = set(json.load(f))
+    else:
+        bot.user_ids = []
 
     t = threading.Thread(target=run_scheduler, args=[bot])
     t.start()
