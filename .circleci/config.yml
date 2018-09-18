@@ -14,7 +14,7 @@ jobs:
 
   deploy:
     docker:
-      image: byrnedo/alpine-curl:latest
+      - image: byrnedo/alpine-curl:latest
     # Update server image
     steps:
       - run: curl -L "http://ec2-52-59-248-193.eu-central-1.compute.amazonaws.com:8080?key=$UPDATE_KEY"
