@@ -1,8 +1,7 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: docker
+    machine: true
     steps:
       - checkout
       - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
