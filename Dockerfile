@@ -1,4 +1,6 @@
-FROM python:3.7-rc-slim
+FROM python:3.7-alpine
+
+RUN apk add --update --no-cache openssl-dev libffi-dev build-base
 
 WORKDIR /usr/src/app
 
