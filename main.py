@@ -30,6 +30,8 @@ def start(token: str):
     dispatcher.add_handler(CommandHandler("server_time", lambda b, u: b.send_message(chat_id=update.message.chat_id,
                                                                                      text=datetime.datetime.now().strftime(
                                                                                          "%d-%m-%Y %H-%m-%S"))))
+    dispatcher.add_handler(CommandHandler("server_time", lambda b, u: b.send_message(chat_id=update.message.chat_id,
+                                                                                     text="{{VERSION}}")))
     dispatcher.add_handler(MessageHandler("", callback=lambda _, update: bot.check_participation_message(update)))
 
     user_file = "users.json"
