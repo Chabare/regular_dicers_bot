@@ -27,7 +27,7 @@ def start(token: str):
     dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
                                                                                      text="[{}]".format(
                                                                                          update.message.chat_id))))
-    dispatcher.add_handler(CommandHandler("server_time", lambda b, u: b.send_message(chat_id=update.message.chat_id,
+    dispatcher.add_handler(CommandHandler("server_time", lambda b, u: b.send_message(chat_id=u.message.chat_id,
                                                                                      text=datetime.datetime.now().strftime(
                                                                                          "%d-%m-%Y %H-%m-%S"))))
     dispatcher.add_handler(CommandHandler("version", lambda b, u: b.send_message(chat_id=u.message.chat_id,
