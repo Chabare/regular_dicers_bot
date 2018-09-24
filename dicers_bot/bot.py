@@ -36,6 +36,7 @@ class Bot:
     def remind_users(self, update):
         # Check for admin user
         if update.message.chat_id != "139656428":
+            print("{} tried to use /remind_all".format(update.message.chat_id))
             self.updater.bot.send_message(chat_id=update.message.chat_id, text="Fuck you")
         else:
             for user in self.user_ids:
