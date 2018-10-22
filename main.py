@@ -1,9 +1,9 @@
 import datetime
 import os
 import threading
+import time
 
 import schedule
-import time
 from telegram.ext import CommandHandler, MessageHandler, Updater
 
 from dicers_bot import Bot
@@ -31,7 +31,7 @@ def start(token: str):
                                                                                      text=datetime.datetime.now().strftime(
                                                                                          "%d-%m-%Y %H-%M-%S"))))
     dispatcher.add_handler(CommandHandler("version", lambda b, u: b.send_message(chat_id=u.message.chat_id,
-                                                                                     text="{{VERSION}}")))
+                                                                                 text="{{VERSION}}")))
     dispatcher.add_handler(MessageHandler("", callback=lambda _, update: bot.check_participation_message(update)))
 
     user_file = "users.json"
@@ -39,7 +39,7 @@ def start(token: str):
         with open(user_file) as f:
             bot.user_ids = set(json.load(f))
     else:
-        bot.user_ids = []
+        bot.user_ids = set()
 
     t = threading.Thread(target=run_scheduler, args=[bot])
     t.start()
