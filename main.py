@@ -3,6 +3,7 @@ import os
 import threading
 
 import schedule
+import time
 from telegram.ext import CommandHandler, MessageHandler, Updater
 
 from dicers_bot import Bot
@@ -10,10 +11,9 @@ from dicers_bot import Bot
 
 def run_scheduler(bot):
     schedule.every().monday.at("14:00").do(bot.remind_users)
-    while bot.updater is not None:
+    while True:
         schedule.run_pending()
-
-    run_scheduler(bot)
+        time.sleep(5)
 
 
 def start(token: str):
