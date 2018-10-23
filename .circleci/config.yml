@@ -1,9 +1,11 @@
 version: 2
 jobs:
   build:
-    machine: true
+    docker:
+      - image: docker:18.06-git
     steps:
       - checkout
+      - setup_remote_docker
       - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
 
       - run: sed -i -e "s/{{VERSION}}/$CIRCLE_SHA1/" main.py
