@@ -55,3 +55,11 @@ class Bot:
 
     def remind_user(self, update):
         self.updater.bot.send_message(chat_id=update.message.chat_id, text="Wer ist dabei?", reply_markup=self.attend_markup)
+
+    def remove_keyboard(self, update=None):
+        if update:
+            self.updater.bot.send_message(chat_id=update.message.chat_id, text="", reply_markup=ReplyKeyboardRemove(True))
+        else:
+            for user in self.user_ids:
+                self.updater.bot.send_message(chat_id=user, text="", reply_markup=ReplyKeyboardRemove(True))
+

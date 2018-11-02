@@ -11,6 +11,7 @@ from dicers_bot import Bot
 
 def run_scheduler(bot):
     schedule.every().monday.at("14:00").do(bot.remind_users)
+    schedule.every().tuesday.at("00:00").do(bot.remove_keyboard)
     while True:
         schedule.run_pending()
         time.sleep(5)
