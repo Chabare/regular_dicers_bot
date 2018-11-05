@@ -1,13 +1,20 @@
 import json
-import re
-from telegram import ReplyKeyboardMarkup
-from telegram import ReplyKeyboardRemove
+from telegram import InlineKeyboardMarkup, Update, CallbackQuery, User
+from telegram import InlineKeyboardButton
+from telegram.error import BadRequest
 
 from .calendar import Calendar
 
 
 class Bot:
-    custom_keyboard_attend = [["Dabei"], ["Nicht dabei"]]
+    custom_keyboard_attend = [[
+        InlineKeyboardButton(
+            text="Dabei",
+            callback_data="True"),
+        InlineKeyboardButton(
+            text="Nicht dabei",
+            callback_data="False")
+    ]]
     offset = 0
     admin_user_id = "139656428"
 
@@ -15,10 +22,15 @@ class Bot:
         self.updater = updater
         self.user_ids = set()
         self.state = {
-            "main_id": None
+            "main_id": None,
+            "attendees": dict()
         }
-        self.attend_markup = ReplyKeyboardMarkup(self.custom_keyboard_attend, one_time_keyboard=True)
+        self.attend_markup = InlineKeyboardMarkup(self.custom_keyboard_attend)
         self.calendar = Calendar()
+
+    def save_state(self):
+        with open("state.json", "w+") as f:
+            json.dump(self.state, f)
 
     def register(self, update, send_success=True):
         try:
@@ -39,6 +51,30 @@ class Bot:
             print(e)
             return False
 
+    def unregister(self, update):
+        try:
+            user = update.message.chat_id
+            original_length = len(self.user_ids)
+            try:
+                self.user_ids.remove(user)
+                if self.state["main_id"] == user:
+                    self.state["main_id"] = None
+                    self.save_state()
+            except KeyError:
+                return
+
+            with open("users.json", "w+") as f:
+                json.dump(list(self.user_ids), f)
+
+            if len(self.user_ids) == original_length:
+                self.updater.bot.send_message(chat_id=user, text="You weren't registered in the first place!")
+            else:
+                self.updater.bot.send_message(chat_id=user, text="You have been unregistered.")
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
     def register_main(self, update):
         user = update.message.chat_id
         if user == self.admin_user_id:
@@ -46,8 +82,7 @@ class Bot:
             if registered:
                 user = update.message.chat_id
                 self.state["main_id"] = user
-                with open("state.json", "w+") as f:
-                    json.dump(self.state, f)
+                self.save_state()
                 self.updater.bot.send_message(chat_id=user, text="You have been registered as the main chat.")
 
     def remind_users(self, update=None):
@@ -57,26 +92,68 @@ class Bot:
             self.updater.bot.send_message(chat_id=update.message.chat_id, text="Fuck you")
         else:
             for user in self.user_ids:
-                self.updater.bot.send_message(chat_id=user, text="Wer ist dabei?", reply_markup=self.attend_markup)
+                self.updater.bot.send_message(chat_id=user, text=self.build_message(user), reply_markup=self.attend_markup)
 
-    def check_participation_message(self, update):
-        positive_messages = ["^dabei$", "👍", r"^ja\b", "👌", r"^yes\b", r"^\+1?"]
-        negative_messages = ["^nicht dabei$", "👎", r"^no\b", r"^nein\b", "^-1?", "^nope\b"]
-        for positive_message in positive_messages:
-            if re.match(positive_message, update.message.text.lower()):
-                if update.message.chat_id == self.state["main_id"]:
-                    self.calendar.create()
-                update.message.reply_text("🍹❤️", quote=True, reply_markup=ReplyKeyboardRemove(True))
-        for negative_message in negative_messages:
-            if re.match(negative_message, update.message.text.lower()):
-                update.message.reply_text("Shame on you", quote=True, reply_markup=ReplyKeyboardRemove(True))
+    def handle_callback(self, update: Update):
+        try:
+            callback: CallbackQuery = update.callback_query
+            user: User = callback.from_user
+            chat_id = callback.message.chat.id
+            attendees = dict()
+            try:
+                all_attendees = self.state["attendees"]
+            except KeyError:
+                all_attendees = dict()
+                self.state["attendees"] = all_attendees
+
+            try:
+                attendees = all_attendees[str(chat_id)]
+            except KeyError:
+                pass
+
+            all_attendees[str(chat_id)] = attendees
+
+            data = callback.data
+            attends = data == "True"
+            attendees[str(user.id)] = {
+                "attends": attends,
+                "name": user.first_name
+            }
+            self.save_state()
+
+            try:
+                callback.edit_message_text(text=self.build_message(chat_id), reply_markup=self.attend_markup)
+            except BadRequest:
+                # Message is unchanged
+                pass
+
+            if chat_id == self.state["main_id"] and self.positive_attendees(chat_id):
+                self.calendar.create()
+
+            callback.answer()
+        except Exception as e:
+            print(e)
+
+    def positive_attendees(self, chat_id):
+        attendees: dict = self.state["attendees"][str(chat_id)]
+        return list(map(lambda user: user["name"], filter(lambda user: user["attends"], attendees.values())))
+
+    def build_message(self, chat_id) -> str:
+        try:
+            first_names = self.positive_attendees(chat_id)
+            if not first_names:
+                raise KeyError()
+            return "Wer ist dabei? Bisher: " + ", ".join(first_names)
+        except KeyError:
+            return "Wer ist dabei?"
 
     def remind_user(self, update):
-        self.updater.bot.send_message(chat_id=update.message.chat_id, text="Wer ist dabei?", reply_markup=self.attend_markup)
+        try:
+            chat_id = update.message.chat_id
+            self.updater.bot.send_message(chat_id=chat_id, text=self.build_message(chat_id), reply_markup=self.attend_markup)
+        except Exception as e:
+            print(e)
 
-    def remove_keyboard(self, update=None):
-        if update:
-            self.updater.bot.send_message(chat_id=update.message.chat_id, text="", reply_markup=ReplyKeyboardRemove(True))
-        else:
-            for user in self.user_ids:
-                self.updater.bot.send_message(chat_id=user, text="", reply_markup=ReplyKeyboardRemove(True))
+    def reset_attendees(self):
+        self.state["attendees"] = dict()
+        self.save_state()

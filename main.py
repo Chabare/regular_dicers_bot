@@ -4,14 +4,14 @@ import threading
 import time
 
 import schedule
-from telegram.ext import CommandHandler, MessageHandler, Updater
+from telegram.ext import CommandHandler, MessageHandler, Updater, CallbackQueryHandler
 
 from dicers_bot import Bot
 
 
 def run_scheduler(bot):
     schedule.every().monday.at("14:00").do(bot.remind_users)
-    schedule.every().tuesday.at("00:00").do(bot.remove_keyboard)
+    schedule.every().tuesday.at("00:00").do(bot.reset_attendees)
     while True:
         schedule.run_pending()
         time.sleep(5)
@@ -23,6 +23,7 @@ def start(token: str):
 
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler("register", lambda _, update: bot.register(update)))
+    dispatcher.add_handler(CommandHandler("unregister", lambda _, update: bot.unregister(update)))
     dispatcher.add_handler(CommandHandler("register_main", lambda _, update: bot.register_main(update)))
     dispatcher.add_handler(CommandHandler("remind_all", lambda _, update: bot.remind_users(update)))
     dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_user(update)))
@@ -34,7 +35,7 @@ def start(token: str):
                                                                                          "%d-%m-%Y %H-%M-%S"))))
     dispatcher.add_handler(CommandHandler("version", lambda b, u: b.send_message(chat_id=u.message.chat_id,
                                                                                  text="{{VERSION}}")))
-    dispatcher.add_handler(MessageHandler("", callback=lambda _, update: bot.check_participation_message(update)))
+    dispatcher.add_handler(CallbackQueryHandler(lambda _, u: bot.handle_callback(u)))
 
     user_file = "users.json"
     if os.path.exists(user_file):
