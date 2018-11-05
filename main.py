@@ -23,6 +23,7 @@ def start(token: str):
 
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler("register", lambda _, update: bot.register(update)))
+    dispatcher.add_handler(CommandHandler("register_main", lambda _, update: bot.register_main(update)))
     dispatcher.add_handler(CommandHandler("remind_all", lambda _, update: bot.remind_users(update)))
     dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_user(update)))
     dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
@@ -41,6 +42,12 @@ def start(token: str):
             bot.user_ids = set(json.load(f))
     else:
         bot.user_ids = set()
+
+    state_file = "state.json"
+    if os.path.exists(state_file):
+        with open(state_file) as f:
+            state = dict(json.load(f))
+        bot.state = state
 
     t = threading.Thread(target=run_scheduler, args=[bot])
     t.start()
