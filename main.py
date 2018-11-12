@@ -4,7 +4,7 @@ import threading
 import time
 
 import schedule
-from telegram.ext import CommandHandler, MessageHandler, Updater, CallbackQueryHandler
+from telegram.ext import CommandHandler, Updater, CallbackQueryHandler
 
 from dicers_bot import Bot
 
@@ -12,6 +12,7 @@ from dicers_bot import Bot
 def run_scheduler(bot):
     schedule.every().monday.at("14:00").do(bot.remind_users)
     schedule.every().tuesday.at("00:00").do(bot.reset_attendees)
+    schedule.every().monday.at("20:10").do(bot.show_dice)
     while True:
         schedule.run_pending()
         time.sleep(5)
@@ -27,6 +28,8 @@ def start(token: str):
     dispatcher.add_handler(CommandHandler("register_main", lambda _, update: bot.register_main(update)))
     dispatcher.add_handler(CommandHandler("remind_all", lambda _, update: bot.remind_users(update)))
     dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_user(update)))
+    dispatcher.add_handler(CommandHandler("show_dice", lambda _, update: bot.show_dice(update)))
+    dispatcher.add_handler(CommandHandler("reset", lambda b, _: bot.reset_attendees()))
     dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
                                                                                      text="[{}]".format(
                                                                                          update.message.chat_id))))
@@ -35,7 +38,10 @@ def start(token: str):
                                                                                          "%d-%m-%Y %H-%M-%S"))))
     dispatcher.add_handler(CommandHandler("version", lambda b, u: b.send_message(chat_id=u.message.chat_id,
                                                                                  text="{{VERSION}}")))
-    dispatcher.add_handler(CallbackQueryHandler(lambda _, u: bot.handle_callback(u)))
+    dispatcher.add_handler(
+        CallbackQueryHandler(lambda _, u: bot.handle_attend_callback(u), pattern="attend_(.*)"))
+    dispatcher.add_handler(
+        CallbackQueryHandler(lambda _, u: bot.handle_dice_callback(u), pattern="dice_(.*)"))
 
     user_file = "users.json"
     if os.path.exists(user_file):
