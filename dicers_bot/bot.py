@@ -5,9 +5,8 @@ import re
 from typing import List, Optional, Set, Dict, Union
 
 from telegram import Bot as TBot
-from telegram import Chat as TChat
 from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup, Update, CallbackQuery
+from telegram import InlineKeyboardMarkup, Update, CallbackQuery, Message
 from telegram import User as TUser
 from telegram.error import BadRequest
 
@@ -37,82 +36,68 @@ class Bot:
         self.chats: Dict[str, Chat] = {}
         self.updater = updater
         self.user_ids = set()
-        self.state = {
+        self.state: Dict[str, Union[Dict[str, Chat], Optional[str]]] = {
             "main_id": None,
-            "attendees": []
+            "chats": {}
         }
         self.calendar = Calendar()
         self.logger = create_logger("regular_dicers_bot")
-
-    def show_dice(self, update):
-        chat_id = update.message.chat_id
-        self.chats[chat_id].show_dice()
 
     def save_state(self):
         with open("state.json", "w+") as f:
             json.dump(self.state, f)
 
-    def register(self, update, send_success=True):
-        try:
-            user = update.message.chat_id
-            original_length = len(self.user_ids)
-            self.user_ids.add(user)
+    def register(self, update: Update, send_success: bool = True) -> bool:
+        chat_id = update.message.chat_id
 
-            with open("users.json", "w+") as f:
-                json.dump(list(self.user_ids), f)
-
-            if send_success:
-                if len(self.user_ids) == original_length:
-                    self.updater.bot.send_message(chat_id=user, text="Why would you register twice, dumbass!")
-                else:
-                    self.updater.bot.send_message(chat_id=user, text="You have been registered.")
-            return True
-        except Exception as e:
+        if chat_id in self.chats.keys():
+            self.updater.bot.send_message(chat_id=chat_id, text="Why would you register twice, dumbass!")
             return False
 
-    def unregister(self, update):
+        self.chats[chat_id] = Chat(chat_id, self.updater.bot)
+        self.save_state()
+
+        if send_success:
+            self.updater.bot.send_message(chat_id=chat_id, text="You have been registered.")
+
+        return True
+
+    def unregister(self, update: Update) -> bool:
+        chat_id = update.message.chat_id
         try:
-            user = update.message.chat_id
-            original_length = len(self.user_ids)
-            try:
-                self.user_ids.remove(user)
-                if self.state["main_id"] == user:
-                    self.state["main_id"] = None
-                    self.save_state()
-            except KeyError:
-                return
+            successful_removal = self.chats.pop(chat_id)
+            if self.state["main_id"] == chat_id:
+                self.state["main_id"] = None
+                self.save_state()
+        except KeyError:
+            successful_removal = False
 
-            with open("users.json", "w+") as f:
-                json.dump(list(self.user_ids), f)
+        if not successful_removal:
+            self.updater.bot.send_message(chat_id=chat_id, text="You weren't registered in the first place!")
+        else:
+            self.updater.bot.send_message(chat_id=chat_id, text="You have been unregistered.")
 
-            if len(self.user_ids) == original_length:
-                self.updater.bot.send_message(chat_id=user, text="You weren't registered in the first place!")
-            else:
-                self.updater.bot.send_message(chat_id=user, text="You have been unregistered.")
-            return True
-        except Exception as e:
-            self.logger.error(repr(e))
-            return False
+        return successful_removal
 
-    def register_main(self, update):
-        user = update.message.chat_id
-        if user == self.admin_user_id:
+    def register_main(self, update: Update):
+        chat_id = update.message.chat_id
+        if chat_id == self.admin_user_id:
             registered = self.register(update, False)
             if registered:
-                user = update.message.chat_id
-                self.state["main_id"] = user
+                self.state["main_id"] = chat_id
                 self.save_state()
-                self.updater.bot.send_message(chat_id=user, text="You have been registered as the main chat.")
+                self.updater.bot.send_message(chat_id=chat_id, text="You have been registered as the main chat.")
 
-    def remind_users(self, update=None):
-        # Check for admin user
-        if update and update.message.chat_id != self.admin_user_id:
-            self.logger.error("{} tried to use /remind_all".format(update.message.chat_id))
-            self.updater.bot.send_message(chat_id=update.message.chat_id, text="Fuck you")
-        else:
-            for user in self.user_ids:
-                self.updater.bot.send_message(chat_id=user, text=self.build_message(user),
-                                              reply_markup=self.attend_markup)
+    def remind_users(self, update: Update = None) -> bool:
+        if update:
+            # Check for admin user
+            chat_id = update.message.chat_id
+            if chat_id != self.admin_user_id:
+                self.updater.bot.send_message(chat_id=update.message.chat_id, text="Fuck you")
+                return False
+
+        # Check that all chat keyboards have been set correctly
+        return all([bool(chat.show_attend_keyboard()) for chat in self.chats.values()])
 
     def handle_attend_callback(self, update: Update):
         try:
@@ -193,44 +178,27 @@ class Bot:
             print("asd: {}".format(e))
             self.logger.error(repr(e))
 
-    def positive_attendees(self, chat_id):
-        attendees: dict = self.state["attendees"]["current"][str(chat_id)]
-        return list(map(lambda user: user, filter(lambda user: user["attends"], attendees.values())))
-
-    def build_dice_roll_message(self, chat_id: str) -> str:
-        base_message = "Was hast du gewürfelt?"
-        try:
-            users = self.positive_attendees(chat_id)
-            if not users:
-                raise KeyError()
-            return base_message + " Bisher: " + ", ".join(
-                ["{} ({}{})".format(user["name"], user["roll"], "+1" if user["jumbo"] else "") for user in users if
-                 user["roll"] != -1])
-        except KeyError:
-            return base_message
-
-    def build_message(self, chat_id) -> str:
-        try:
-            users = self.positive_attendees(chat_id)
-            if not users:
-                raise KeyError()
-            return "Wer ist dabei? Bisher: " + ", ".join(
-                ["{}".format(user["name"]) for user in users])
-        except KeyError:
-            return "Wer ist dabei?"
-
-    def remind_user(self, update):
+    def remind_chat(self, update) -> bool:
         try:
             chat_id = update.message.chat_id
-            data = self.updater.bot.send_message(chat_id=chat_id, text=self.build_message(chat_id),
-                                                 reply_markup=self.attend_markup)
-            self.updater.bot.pin_chat_message(chat_id=chat_id, message_id=data['message_id'], disable_notification=True)
-        except Exception as e:
-            self.logger.error(repr(e))
+        except AttributeError as e:
+            self.logger.info("Attribute error for `update.message.chat_id`: {}".format(e))
+            return False
 
-    def reset_attendees(self):
+        if not (chat_id in self.chats.keys()):
+            self.logger.error("Chat id not known. Chat has to be registered before it can be reminded")
+            return False
+
+        self.logger.info("Show attend keyboard for: {}".format(chat_id))
+        result = self.chats[chat_id].show_attend_keyboard()
+        self.logger.info("Result if showing attend keyboard for {}: {}".format(chat_id, result))
+
+        return bool(result)
+
+    def reset(self):
         for _, chat in self.chats.items():
             chat.close_current_event()
+            chat.unpin_message()
 
         self.save_state()
 
@@ -279,18 +247,17 @@ class Event:
         return next_monday
 
 
-class Chat(TChat):
+class Chat:
     events: List[Event] = []
     pinned_message_id: Optional[int] = None
     current_event: Optional[Event]
     attend_message_id: int
-    price_message_id: int
+    dice_message_id: int
 
-    def __init__(self, id: str, bot: TBot, telegram_chat: TChat):
+    def __init__(self, id: str, bot: TBot):
         self.logger = create_logger("chat_{}".format(id))
         self.logger.info("Create chat")
         self.id: str = id
-        self._internal: TChat = telegram_chat
         self.bot: TBot = bot
         self.logger.info("Created chat")
 
@@ -380,9 +347,9 @@ class Chat(TChat):
             ))
             raise Exception  # TODO
 
-        message = self._build_price_message()
+        message = self._build_dice_message()
         self.logger.info("Edit message ({})".format(message))
-        result = self.bot.edit_message_text(chat_id=self.id, message_id=self.price_message_id, text=message)
+        result = self.bot.edit_message_text(chat_id=self.id, message_id=self.dice_message_id, text=message)
 
         self.logger.info("edit_message_text returned: {}".format(result))
         return result
@@ -400,21 +367,21 @@ class Chat(TChat):
 
     def update_price_message(self):
         self.logger.info("Update price message")
-        if not self.price_message_id or not self.current_event:
+        if not self.dice_message_id or not self.current_event:
             self.logger.info("Failed to update price message: price_message_id: {} | self.current_event".format(
-                self.price_message_id,
+                self.dice_message_id,
                 self.current_event.serialize()
             ))
             raise Exception  # TODO
 
         message = self._build_attend_message()
         self.logger.info("Edit message ({})".format(message))
-        result = self.bot.edit_message_text(chat_id=self.id, message_id=self.price_message_id, text=message)
+        result = self.bot.edit_message_text(chat_id=self.id, message_id=self.dice_message_id, text=message)
 
         self.logger.info("edit_message_text returned: {}".format(result))
         return result
 
-    def _build_price_message(self):
+    def _build_dice_message(self):
         self.logger.info("Build price message")
         message = "Was hast du gewürfelt?"
         attendees = self.current_event.attendees
@@ -437,9 +404,28 @@ class Chat(TChat):
         self.logger.info("Result of sending message: {}".format(result))
         return result
 
-    def show_dice(self):
+    def show_dice(self) -> Message:
         self.logger.info("Showing dice")
-        result = self._send_message(text=self._build_price_message(), reply_markup=self.get_dice_keyboard())
+        result = self._send_message(text=self._build_dice_message(), reply_markup=self.get_dice_keyboard())
+        if result:
+            self.logger.info("Successfully shown dice: {}".format(result))
+            self.logger.info("Assigning internal id and pin message: {}".format(result))
+            self.dice_message_id = result.message_id
+            self.pin_message(self.dice_message_id, unpin=True)
+        else:
+            self.logger.info("Failed to send dice message: {}".format(result))
 
-        self.logger.info("Result of showing dice: {}".format(result))
+        return result
+
+    def show_attend_keyboard(self) -> Message:
+        self.logger.info("Show attend keyboard")
+        result = self._send_message(text=self._build_attend_message(), reply_markup=self.get_attend_keyboard())
+        if result:
+            self.logger.info("Successfully shown attend: {}".format(result))
+            self.logger.info("Assigning internal id and pin message: {}".format(result))
+            self.attend_message_id = result.message_id
+            self.pin_message(self.attend_message_id)
+        else:
+            self.logger.info("Failed to send attend message: {}".format(result))
+
         return result

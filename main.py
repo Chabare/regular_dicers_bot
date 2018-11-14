@@ -11,7 +11,7 @@ from dicers_bot import Bot
 
 def run_scheduler(bot):
     schedule.every().monday.at("14:00").do(bot.remind_users)
-    schedule.every().tuesday.at("00:00").do(bot.reset_attendees)
+    schedule.every().tuesday.at("00:00").do(bot.reset)
     schedule.every().monday.at("20:10").do(bot.show_dice)
     while True:
         schedule.run_pending()
@@ -27,9 +27,9 @@ def start(token: str):
     dispatcher.add_handler(CommandHandler("unregister", lambda _, update: bot.unregister(update)))
     dispatcher.add_handler(CommandHandler("register_main", lambda _, update: bot.register_main(update)))
     dispatcher.add_handler(CommandHandler("remind_all", lambda _, update: bot.remind_users(update)))
-    dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_user(update)))
+    dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_chat(update)))
     dispatcher.add_handler(CommandHandler("show_dice", lambda _, update: bot.show_dice(update)))
-    dispatcher.add_handler(CommandHandler("reset", lambda b, _: bot.reset_attendees()))
+    dispatcher.add_handler(CommandHandler("reset", lambda b, _: bot.reset()))
     dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
                                                                                      text="[{}]".format(
                                                                                          update.message.chat_id))))
