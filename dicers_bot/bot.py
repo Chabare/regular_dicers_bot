@@ -41,9 +41,7 @@ class Bot:
         self.logger = create_logger("regular_dicers_bot")
 
     def show_dice(self, chat_id: str):
-        print(chat_id)
         chat = self.chats[chat_id]
-        print(chat)
         return chat.show_dice()
 
     def show_dices(self):
@@ -109,7 +107,8 @@ class Bot:
                 user_id = update.message.from_user.id
                 until_ban_time = datetime.datetime.now() + datetime.timedelta(hours=2)
                 try:
-                    self.updater.bot.kick_chat_member(chat_id, user_id, until_date=until_ban_time)
+                    self.updater.bot.restrict_chat_member(chat_id, user_id, can_send_messages=False,
+                                                          until_date=until_ban_time)
                 except Exception as e:
                     # Admins can't be banned
                     return False
