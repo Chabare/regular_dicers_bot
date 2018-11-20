@@ -53,7 +53,11 @@ def start(token: str):
     state_file = "state.json"
     if os.path.exists(state_file):
         with open(state_file) as f:
-            state = dict(json.load(f))
+            try:
+                state = json.load(f)
+            except json.decoder.JSONDecodeError as e:
+                print("Unable to load previous state: {}".format(e))
+                state = {}
         bot.state = state
 
     t = threading.Thread(target=run_scheduler, args=[bot])

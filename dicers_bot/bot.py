@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import re
-from typing import List, Optional, Set, Dict, Union
+from typing import List, Optional, Set, Dict
 
 from telegram import Bot as TBot
 from telegram import InlineKeyboardButton
@@ -34,7 +34,7 @@ class Bot:
         self.chats: Dict[str, Chat] = {}
         self.updater = updater
         self.user_ids = set()
-        self.state: Dict[str, Union[Dict[str, Chat], Optional[str]]] = {
+        self.state: Dict = {
             "main_id": None
         }
         self.calendar = Calendar()
@@ -51,8 +51,7 @@ class Bot:
             self.show_dice(chat_id)
 
     def save_state(self):
-        return
-        self.state["chats"] = self.chats  # TODO: Serialize values
+        self.state["chats"] = [chat.serialize() for chat in self.chats.values()]
         with open("state.json", "w+") as f:
             json.dump(self.state, f)
 
@@ -212,6 +211,13 @@ class User:
     def from_tuser(cls, chat_user):
         return User(chat_user.name)  # TODO
 
+    def serialize(self):
+        return {
+            "name": self.name,
+            "roll": self.roll,
+            "jumbo": self.jumbo
+        }
+
 
 class Event:
     def __init__(self):
@@ -249,12 +255,14 @@ class Event:
         self.attendees.remove(user)
         self.add_absentee(user)
 
-    def serialize(self) -> Dict[str, Union[int, Set[User]]]:
+    def serialize(self) -> Dict:
         self.logger.info("Serialize event")
-        return {
-            "timestamp": self.timestamp,
-            "attendees": self.attendees
+        serialized = {
+            "timestamp": self.timestamp.strftime("%d.%m.%Y"),
+            "attendees": [attendee.serialize() for attendee in self.attendees]
         }
+        self.logger.info("Serialized event: {}".format(serialized))
+        return serialized
 
     @staticmethod
     def _next_monday():
@@ -272,7 +280,7 @@ class Event:
 
 class Chat:
     events: List[Event] = []
-    pinned_message_id: Optional[int]
+    pinned_message_id: Optional[int] = None
     current_event: Optional[Event]
     attend_callback: CallbackQuery
     dice_callback: CallbackQuery
@@ -286,12 +294,15 @@ class Chat:
         self.start_event()
 
     def serialize(self):
-        self.logger.info("Serialize event")
-        return {
-            "id": id,
-            "current_event": self.current_event,
+        self.logger.info("Serialize chat")
+        serialized = {
+            "id": self.id,
+            "current_event": self.current_event.serialize(),
             "pinned_message_id": self.pinned_message_id
         }
+        self.logger.info("Serialized chat: {}".format(serialized))
+
+        return serialized
 
     def pin_message(self, message_id: int, disable_notifications: bool = True, unpin: bool = False) -> bool:
         self.logger.info("Pin message")
