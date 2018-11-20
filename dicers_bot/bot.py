@@ -30,7 +30,6 @@ def create_logger(name: str, level: int = logging.DEBUG):
 
 class Bot:
     offset = 0
-    admin_user_id = "139656428"
 
     def __init__(self, updater):
         self.chats: Dict[str, Chat] = {}
@@ -81,7 +80,7 @@ class Bot:
 
     def register_main(self, update: Update):
         chat_id = update.message.chat_id
-        if chat_id == self.admin_user_id:
+        if not self.state["main_id"]:
             registered = self.register(update, False)
             if registered:
                 self.state["main_id"] = chat_id
@@ -90,9 +89,8 @@ class Bot:
 
     def remind_users(self, update: Update = None) -> bool:
         if update:
-            # Check for admin user
             chat_id = update.message.chat_id
-            if chat_id != self.admin_user_id:
+            if chat_id != self.state["main_id"]:
                 self.updater.bot.send_message(chat_id=update.message.chat_id, text="Fuck you")
                 return False
 
@@ -244,10 +242,7 @@ class Event:
     def remove_attendee(self, user: User):
         self.logger.info("Remove {} from event".format(user))
         self.attendees.remove(user)
-
-    def update_attendee(self, user: User):
-        self.logger.info("Update {} for event".format(user))
-        self.attendees.update(user)
+        self.add_absentee(user)
 
     def serialize(self) -> Dict[str, Union[int, Set[User]]]:
         self.logger.info("Serialize event")
@@ -415,9 +410,9 @@ class Chat:
         if attendees:
             self.logger.info("price message has attendees")
             return message + " Bisher: " + ", ".join(
-                ["{} ({}{})".format(attendee["name"], attendee["roll"], "+1" if attendee["jumbo"] else "") for attendee
+                [str(attendee) for attendee
                  in attendees if
-                 attendee["roll"] != -1])
+                 attendee.roll != -1])
 
         return message
 
