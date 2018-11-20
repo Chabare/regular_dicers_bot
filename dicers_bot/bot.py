@@ -213,7 +213,17 @@ class Event:
         self.logger.info("Create event")
         self.timestamp = self._next_monday()
         self.attendees: Set[User] = {}
+        self.absentees: Set[User] = {}
         self.logger.info("Created event for {}".format(self.timestamp))
+
+    def add_absentee(self, user: User):
+        self.logger.info("Add absentee {} to event".format(user))
+        return self.absentees.add(user)
+
+    def remove_absentee(self, user: User):
+        self.logger.info("Remove absentee {} from event".format(user))
+        self.absentees.remove(user)
+        self.add_attendee(user)
 
     def add_attendee(self, user: User):
         self.logger.info("Add {} to event".format(user))
@@ -358,10 +368,14 @@ class Chat:
         self.logger.info("Build attend message")
         message = "Wer ist dabei?"
         attendees = self.current_event.attendees
+        absentees = self.current_event.absentees
 
         if attendees:
             self.logger.info("attend message has attendees")
-            message += " Bisher: " + ", ".join([user["name"] for user in attendees])
+            message += " Bisher: " + ", ".join([user.name for user in attendees])
+        if absentees:
+            self.logger.info("attend message has absentees")
+            message += " | Nicht dabei: " + ", ".join([user.name for user in absentees])
 
         return message
 
