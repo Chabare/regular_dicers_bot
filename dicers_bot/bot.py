@@ -82,7 +82,7 @@ class Bot:
         chat_id = update.message.chat_id
         try:
             successful_removal = self.chats.pop(chat_id)
-            if self.state["main_id"] == chat_id:
+            if self.state.get("main_id", "") == chat_id:
                 self.state["main_id"] = None
                 self.save_state()
         except KeyError:
@@ -98,7 +98,7 @@ class Bot:
     def register_main(self, update: Update):
         self.logger.info("Register main")
         chat_id = update.message.chat_id
-        if not self.state["main_id"]:
+        if not self.state.get("main_id", ""):
             registered = self.register(update, False)
             if registered:
                 self.state["main_id"] = chat_id
@@ -115,6 +115,8 @@ class Bot:
                     return False
                 self.updater.bot.send_message(chat_id=chat_id, text="User {} has been banned for 2 hours.".format(
                     update.message.from_user.username))
+
+        self.save_state()
 
     def remind_users(self, update: Update = None) -> bool:
         if update:
