@@ -203,8 +203,20 @@ class Bot:
         self.save_state()
 
 
-class User(TUser):
-    pass
+class User:
+    def __init__(self, name: str):
+        self.name = name
+        self.roll = -1
+        self.jumbo = False
+
+    def set_roll(self, roll: int) -> None:
+        self.roll = roll
+
+    def set_jumbo(self, jumbo: bool) -> None:
+        self.jumbo = jumbo
+
+    def __str__(self) -> str:
+        return "{} ({}{})".format(self.name, self.roll, "+1" if self.jumbo else "")
 
 
 class Event:
