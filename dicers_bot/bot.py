@@ -8,7 +8,6 @@ from telegram import Bot as TBot
 from telegram import InlineKeyboardButton
 from telegram import InlineKeyboardMarkup, Update, CallbackQuery, Message
 from telegram import User as TUser
-from telegram.error import BadRequest
 
 from .calendar import Calendar
 
@@ -36,28 +35,49 @@ class Bot:
         self.updater = updater
         self.user_ids = set()
         self.state: Dict[str, Union[Dict[str, Chat], Optional[str]]] = {
-            "main_id": None,
-            "chats": {}
+            "main_id": None
         }
         self.calendar = Calendar()
         self.logger = create_logger("regular_dicers_bot")
 
+    def show_dice(self, chat_id: str):
+        print(chat_id)
+        chat = self.chats[chat_id]
+        print(chat)
+        return chat.show_dice()
+
+    def show_dices(self):
+        for chat_id in self.chats.keys():
+            self.show_dice(chat_id)
+
     def save_state(self):
+        return
+        self.state["chats"] = self.chats  # TODO: Serialize values
         with open("state.json", "w+") as f:
             json.dump(self.state, f)
 
     def register(self, update: Update, send_success: bool = True) -> bool:
+        self.logger.info("Register")
         chat_id = update.message.chat_id
+        self.logger.info("Register: {}".format(chat_id))
 
         if chat_id in self.chats.keys():
+            self.logger.info("Chat already registered")
             self.updater.bot.send_message(chat_id=chat_id, text="Why would you register twice, dumbass!")
             return False
 
-        self.chats[chat_id] = Chat(chat_id, self.updater.bot)
-        self.save_state()
+        self.logger.info("Chat is being registered")
+        try:
+            self.chats[chat_id] = Chat(chat_id, self.updater.bot)
+            self.save_state()
+        except Exception as e:
+            print("Exception: {}".format(e))
 
         if send_success:
+            self.logger.info("Chat successfully registered")
             self.updater.bot.send_message(chat_id=chat_id, text="You have been registered.")
+        else:
+            self.logger.info("Failed to register chat")
 
         return True
 
@@ -98,87 +118,50 @@ class Bot:
         return all([bool(chat.show_attend_keyboard()) for chat in self.chats.values()])
 
     def handle_attend_callback(self, update: Update):
+        callback: CallbackQuery = update.callback_query
+        chat_user: TUser = callback.from_user
+        user = User.from_tuser(chat_user)
+        chat = self.chats[callback.message.chat.id]
+        chat.set_attend_callback(callback)
+
+        attends = callback.data == "attend_True"
         try:
-            callback: CallbackQuery = update.callback_query
-            user: TUser = callback.from_user
-            chat_id = callback.message.chat.id
-            attendees = dict()
-            try:
-                all_attendees = self.state["attendees"]["current"]
-            except KeyError:
-                all_attendees = dict()
-                self.state["attendees"]["current"] = all_attendees
-
-            try:
-                attendees = all_attendees[str(chat_id)]
-            except KeyError:
-                pass
-
-            all_attendees[str(chat_id)] = attendees
-
-            data = callback.data
-            attends = data == "attend_True"
-            attendees[str(user.id)] = {
-                "attends": attends,
-                "name": user.first_name,
-                "roll": -1,
-                "jumbo": False
-            }
-            self.save_state()
-
-            try:
-                callback.edit_message_text(text=self.build_message(chat_id), reply_markup=self.attend_markup)
-                self.updater.bot.unpin_chat_message(chat_id=chat_id)
-                self.updater.bot.pin_chat_message(chat_id=chat_id, message_id=data['message_id'],
-                                                  disable_notification=True)
-            except BadRequest:
-                # Message is unchanged
-                pass
-
-            if chat_id == self.state["main_id"] and self.positive_attendees(chat_id):
-                self.calendar.create()
-
-            callback.answer()
+            if attends:
+                chat.current_event.add_attendee(user)
+            else:
+                chat.current_event.add_absentee(user)
         except Exception as e:
-            self.logger.error(repr(e))
+            print("Exception: {}".format(e))
+
+        self.save_state()
+        chat.update_attend_message()
 
     def handle_dice_callback(self, update: Update):
-        try:
-            callback: CallbackQuery = update.callback_query
-            chat_id = callback.message.chat.id
-            data = re.match("dice_(.*)", callback.data).groups()[0]
-            user: TUser = callback.from_user
-            if user.first_name not in [user["name"] for user in self.positive_attendees(chat_id)]:
-                callback.edit_message_text(text=self.build_dice_roll_message(chat_id), reply_markup=self.dice_markup)
-                callback.answer()
-                return
+        callback: CallbackQuery = update.callback_query
+        chat_user: TUser = callback.from_user
+        chat: Chat = self.chats[callback.message.chat.id]
+        chat.set_dice_callback(callback)
 
-            if not (str(chat_id) in self.state["attendees"]["current"]):
-                self.state["attendees"]["current"][str(chat_id)] = {}
-            if not (str(user.id) in self.state["attendees"]["current"][str(chat_id)]):
-                self.state["attendees"]["current"][str(chat_id)][str(user.id)] = {}
+        attendees: List[User] = chat.current_event.attendees
 
-            if data == "-1":
-                self.state["attendees"]["current"][str(chat_id)][str(user.id)]["jumbo"] = False
-            elif data == "+1":
-                self.state["attendees"]["current"][str(chat_id)][str(user.id)]["jumbo"] = True
-            else:
-                self.state["attendees"]["current"][str(chat_id)][str(user.id)]["roll"] = int(data)
+        if chat_user.name not in [user.name for user in attendees]:
+            self.logger.info("User {} is not in attendees list".format(chat_user.name))
+            return False
 
-            self.save_state()
+        data = re.match("dice_(.*)", callback.data).groups()[0]
+        if data in map(str, range(1, 7)):
+            [user for user in attendees if user.name == chat_user.name][0].set_roll(int(data))
+        else:
+            [user for user in attendees if user.name == chat_user.name][0].set_jumbo(data == "+1")
 
-            try:
-                callback.edit_message_text(text=self.build_dice_roll_message(chat_id), reply_markup=self.dice_markup)
-            except BadRequest:
-                pass
-            callback.answer()
-        except Exception as e:
-            print("asd: {}".format(e))
-            self.logger.error(repr(e))
+        self.save_state()
+        chat.update_dice_message()
 
-    def remind_chat(self, update) -> bool:
+    def remind_chat(self, update: Update) -> bool:
+        self.logger.info("Remind chat")
         try:
             chat_id = update.message.chat_id
+            self.logger.info("Remind chat: {}".format(chat_id))
         except AttributeError as e:
             self.logger.info("Attribute error for `update.message.chat_id`: {}".format(e))
             return False
@@ -213,21 +196,39 @@ class User:
     def set_jumbo(self, jumbo: bool) -> None:
         self.jumbo = jumbo
 
+    def __eq__(self, other):
+        if not isinstance(other, User):
+            return False
+
+        return other.name == self.name
+
+    def __hash__(self):
+        return self.name.__hash__()
+
     def __str__(self) -> str:
         return "{} ({}{})".format(self.name, self.roll, "+1" if self.jumbo else "")
+
+    @classmethod
+    def from_tuser(cls, chat_user):
+        return User(chat_user.name)  # TODO
 
 
 class Event:
     def __init__(self):
+        self.timestamp = self._next_monday()
         self.logger = create_logger("event_{}".format(self.timestamp))
         self.logger.info("Create event")
-        self.timestamp = self._next_monday()
-        self.attendees: Set[User] = {}
-        self.absentees: Set[User] = {}
+        self.attendees: Set[User] = set()
+        self.absentees: Set[User] = set()
         self.logger.info("Created event for {}".format(self.timestamp))
 
     def add_absentee(self, user: User):
         self.logger.info("Add absentee {} to event".format(user))
+        try:
+            self.remove_attendee(user)
+        except KeyError:
+            self.logger.info("User was not in attendees: {}".format(user))
+
         return self.absentees.add(user)
 
     def remove_absentee(self, user: User):
@@ -237,6 +238,10 @@ class Event:
 
     def add_attendee(self, user: User):
         self.logger.info("Add {} to event".format(user))
+        try:
+            self.remove_absentee(user)
+        except KeyError:
+            self.logger.info("User was not in absentees: {}".format(user))
         self.attendees.add(user)
 
     def remove_attendee(self, user: User):
@@ -251,8 +256,9 @@ class Event:
             "attendees": self.attendees
         }
 
-    def _next_monday(self):
-        self.logger.info("Calculate _next_monday")
+    @staticmethod
+    def _next_monday():
+        # self.logger.info("Calculate _next_monday")
         today = datetime.datetime.today()
         weekday = 0
 
@@ -260,16 +266,16 @@ class Event:
         days_ahead = weekday - d.weekday()
 
         next_monday = d + datetime.timedelta(days_ahead)
-        self.logger.info("Next monday is on: {}".format(next_monday))
+        # self.logger.info("Next monday is on: {}".format(next_monday))
         return next_monday
 
 
 class Chat:
     events: List[Event] = []
-    pinned_message_id: Optional[int] = None
+    pinned_message_id: Optional[int]
     current_event: Optional[Event]
-    attend_message_id: int
-    dice_message_id: int
+    attend_callback: CallbackQuery
+    dice_callback: CallbackQuery
 
     def __init__(self, id: str, bot: TBot):
         self.logger = create_logger("chat_{}".format(id))
@@ -277,6 +283,7 @@ class Chat:
         self.id: str = id
         self.bot: TBot = bot
         self.logger.info("Created chat")
+        self.start_event()
 
     def serialize(self):
         self.logger.info("Serialize event")
@@ -320,9 +327,11 @@ class Chat:
     def start_event(self, event: Optional[Event] = None):
         self.logger.info("Start event")
         if not event:
+            self.logger.info("No event given, create one")
             event = Event()
 
         self.current_event = event
+        self.logger.info("Started event")
 
     def get_attend_keyboard(self) -> InlineKeyboardMarkup:
         self.logger.info("Get attend keyboard")
@@ -357,22 +366,24 @@ class Chat:
 
     def update_attend_message(self):
         self.logger.info("Update attend message")
-        if not self.attend_message_id or not self.current_event:
-            self.logger.info("Failed to update attend message: attend_message_id: {} | self.current_event".format(
-                self.attend_message_id,
+        if not self.attend_callback or not self.current_event:
+            self.logger.info("Failed to update attend message: attend_callback: {} | self.current_event".format(
+                self.attend_callback,
                 self.current_event.serialize()
             ))
             raise Exception  # TODO
 
-        message = self._build_dice_message()
+        message = self._build_attend_message()
         self.logger.info("Edit message ({})".format(message))
-        result = self.bot.edit_message_text(chat_id=self.id, message_id=self.dice_message_id, text=message)
+        result = self.attend_callback.edit_message_text(text=message, reply_markup=self.get_attend_keyboard())
+        self.logger.info("Answer attend callback")
+        self.attend_callback.answer()
 
         self.logger.info("edit_message_text returned: {}".format(result))
         return result
 
     def _build_attend_message(self):
-        self.logger.info("Build attend message")
+        self.logger.info("Build attend message for event: {}".format(self.current_event))
         message = "Wer ist dabei?"
         attendees = self.current_event.attendees
         absentees = self.current_event.absentees
@@ -380,24 +391,32 @@ class Chat:
         if attendees:
             self.logger.info("attend message has attendees")
             message += " Bisher: " + ", ".join([user.name for user in attendees])
+        else:
+            self.logger.info("No attendees for event")
         if absentees:
             self.logger.info("attend message has absentees")
             message += " | Nicht dabei: " + ", ".join([user.name for user in absentees])
+        else:
+            self.logger.info("No absentees for event")
 
+        self.logger.info("Successfully built the attend message: {}".format(message))
         return message
 
-    def update_price_message(self):
+    def update_dice_message(self):
         self.logger.info("Update price message")
-        if not self.dice_message_id or not self.current_event:
-            self.logger.info("Failed to update price message: price_message_id: {} | self.current_event".format(
-                self.dice_message_id,
+        if not self.dice_callback or not self.current_event:
+            self.logger.info("Failed to update price message: dice_callback: {} | self.current_event".format(
+                self.dice_callback,
                 self.current_event.serialize()
             ))
+            self.logger.info("Raise exception")
             raise Exception  # TODO
 
-        message = self._build_attend_message()
+        message = self._build_dice_message()
         self.logger.info("Edit message ({})".format(message))
-        result = self.bot.edit_message_text(chat_id=self.id, message_id=self.dice_message_id, text=message)
+        result = self.dice_callback.edit_message_text(text=message, reply_markup=self.get_dice_keyboard())
+        self.logger.info("Answer dice callback")
+        self.dice_callback.answer()
 
         self.logger.info("edit_message_text returned: {}".format(result))
         return result
@@ -405,14 +424,11 @@ class Chat:
     def _build_dice_message(self):
         self.logger.info("Build price message")
         message = "Was hast du gewürfelt?"
-        attendees = self.current_event.attendees
+        attendees = [attendee for attendee in self.current_event.attendees if attendee.roll != -1]
 
         if attendees:
             self.logger.info("price message has attendees")
-            return message + " Bisher: " + ", ".join(
-                [str(attendee) for attendee
-                 in attendees if
-                 attendee.roll != -1])
+            return message + " Bisher: " + ", ".join(map(str, attendees))
 
         return message
 
@@ -431,8 +447,7 @@ class Chat:
         if result:
             self.logger.info("Successfully shown dice: {}".format(result))
             self.logger.info("Assigning internal id and pin message: {}".format(result))
-            self.dice_message_id = result.message_id
-            self.pin_message(self.dice_message_id, unpin=True)
+            self.pin_message(result.message_id, unpin=True)
         else:
             self.logger.info("Failed to send dice message: {}".format(result))
 
@@ -440,13 +455,21 @@ class Chat:
 
     def show_attend_keyboard(self) -> Message:
         self.logger.info("Show attend keyboard")
-        result = self._send_message(text=self._build_attend_message(), reply_markup=self.get_attend_keyboard())
+        message = self._build_attend_message()
+        result = self._send_message(text=message, reply_markup=self.get_attend_keyboard())
         if result:
             self.logger.info("Successfully shown attend: {}".format(result))
             self.logger.info("Assigning internal id and pin message: {}".format(result))
-            self.attend_message_id = result.message_id
-            self.pin_message(self.attend_message_id)
+            self.pin_message(result.message_id)
         else:
             self.logger.info("Failed to send attend message: {}".format(result))
 
         return result
+
+    def set_attend_callback(self, callback: CallbackQuery):
+        self.logger.info("Set attend callback")
+        self.attend_callback = callback
+
+    def set_dice_callback(self, callback: CallbackQuery):
+        self.logger.info("Set dice callback")
+        self.dice_callback = callback
