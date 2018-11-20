@@ -75,8 +75,6 @@ class Bot:
         if send_success:
             self.logger.info("Chat successfully registered")
             self.updater.bot.send_message(chat_id=chat_id, text="You have been registered.")
-        else:
-            self.logger.info("Failed to register chat")
 
         return True
 
@@ -98,6 +96,7 @@ class Bot:
         return successful_removal
 
     def register_main(self, update: Update):
+        self.logger.info("Register main")
         chat_id = update.message.chat_id
         if not self.state["main_id"]:
             registered = self.register(update, False)
@@ -105,6 +104,17 @@ class Bot:
                 self.state["main_id"] = chat_id
                 self.save_state()
                 self.updater.bot.send_message(chat_id=chat_id, text="You have been registered as the main chat.")
+        else:
+            if chat_id == self.state["main_id"]:
+                user_id = update.message.from_user.id
+                until_ban_time = datetime.datetime.now() + datetime.timedelta(hours=2)
+                try:
+                    self.updater.bot.kick_chat_member(chat_id, user_id, until_date=until_ban_time)
+                except Exception as e:
+                    # Admins can't be banned
+                    return False
+                self.updater.bot.send_message(chat_id=chat_id, text="User {} has been banned for 2 hours.".format(
+                    update.message.from_user.username))
 
     def remind_users(self, update: Update = None) -> bool:
         if update:

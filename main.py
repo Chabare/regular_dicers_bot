@@ -57,7 +57,7 @@ def start(token: str):
                 state = json.load(f)
             except json.decoder.JSONDecodeError as e:
                 print("Unable to load previous state: {}".format(e))
-                state = {}
+                state = {"main_id": None}
         bot.state = state
 
     t = threading.Thread(target=run_scheduler, args=[bot])
