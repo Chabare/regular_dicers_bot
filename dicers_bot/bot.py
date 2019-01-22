@@ -132,7 +132,7 @@ class Bot:
     def restrict_user(self, chat_id: str, user: User, until_date: timedelta, **kwargs):
         timestamp: int = (datetime.now() + until_date).timestamp()
         try:
-            result = self.updater.bot.restrict_chat_member(chat_id, user._id, until_date=timestamp,
+            result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
                                                            **kwargs)
             if not kwargs.get("can_send_message", False):
                 self.updater.bot.send_message(chat_id=chat_id, text="User {} has been restricted for 2 hours.".format(
@@ -182,12 +182,12 @@ class Bot:
         attends = callback.data == "attend_True"
         if attends:
             chat.current_event.add_attendee(user)
-            self.unmute_user(chat._id, user)
+            self.unmute_user(chat.id, user)
         else:
             chat.current_event.add_absentee(user)
             try:
                 chat.current_event.remove_attendee(user)
-                Timer(15 * 60, self.mute_user, [chat._id, user, timedelta(hours=1)]).start()
+                Timer(15 * 60, self.mute_user, [chat.id, user, timedelta(hours=1)]).start()
             except Exception as e:
                 sentry_sdk.capture_exception()
                 self.logger.exception(e)
@@ -270,7 +270,7 @@ class Bot:
 
                 if spam_type_message and not user.muted:
                     self.logger.warning(spam_type_message)
-                    self.mute_user(chat._id, user, timeout)
+                    self.mute_user(chat.id, user, timeout)
 
     @staticmethod
     def _check_user_spam(user_messages: List[Message]) -> SpamType:

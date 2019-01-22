@@ -18,7 +18,7 @@ class Chat:
     def __init__(self, _id: str, bot: TBot):
         self.logger = create_logger("chat_{}".format(_id))
         self.logger.info("Create chat")
-        self._id: str = _id
+        self.id: str = _id
         self.bot: TBot = bot
         self.logger.info("Created chat")
         self.start_event()
@@ -33,7 +33,7 @@ class Chat:
     def serialize(self):
         self.logger.info("Serialize chat")
         serialized = {
-            "id": self._id,
+            "id": self.id,
             "current_event": self.current_event.serialize(),
             "pinned_message_id": self.pinned_message_id,
             "events": [event.serialize() for event in self.events]
@@ -63,7 +63,7 @@ class Chat:
             self.logger.info("Force unpin before pinning")
             self.unpin_message()
 
-        if not self.pinned_message_id and self.bot.pin_chat_message(chat_id=self._id,
+        if not self.pinned_message_id and self.bot.pin_chat_message(chat_id=self.id,
                                                                     message_id=message_id,
                                                                     disable_notification=disable_notifications):
             self.pinned_message_id = message_id
@@ -75,7 +75,7 @@ class Chat:
 
     def unpin_message(self):
         self.logger.info("Unpin message")
-        if self.bot.unpin_chat_message(chat_id=self._id):
+        if self.bot.unpin_chat_message(chat_id=self.id):
             self.logger.info("Successfully unpinned message")
             self.pinned_message_id = None
             return True
@@ -205,7 +205,7 @@ class Chat:
         self.logger.info(
             "Send message with: {}".format(" | ".join(["{}: {}".format(key, val) for key, val in kwargs.items()]))
         )
-        result = self.bot.send_message(chat_id=self._id, **kwargs)
+        result = self.bot.send_message(chat_id=self.id, **kwargs)
 
         self.logger.info("Result of sending message: {}".format(result))
         return result

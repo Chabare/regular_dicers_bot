@@ -9,7 +9,7 @@ class User:
         self.name = name
         self.roll = -1
         self.jumbo = False
-        self._id = _id
+        self.id = _id
         self._internal = chat_user
         self.muted = False
         self.messages: Set[Message] = set()
@@ -54,5 +54,5 @@ class User:
             "roll": self.roll,
             "jumbo": self.jumbo,
             "muted": self.muted,
-            "id": self._id
+            "id": self.id
         }
