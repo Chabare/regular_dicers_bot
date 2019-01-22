@@ -1,30 +1,32 @@
-import datetime
 import json
-import logging
 import re
-from typing import List, Optional, Set, Dict
+from collections import Counter
+from datetime import datetime, timedelta
+from enum import Enum
+from itertools import groupby, zip_longest
+from threading import Timer
+from typing import Any, List, Optional, Dict, Iterable
 
-from telegram import Bot as TBot
-from telegram import InlineKeyboardButton
-from telegram import InlineKeyboardMarkup, Update, CallbackQuery, Message
+import sentry_sdk
+from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram import User as TUser
 
+from dicers_bot.chat import Chat, User
 from .calendar import Calendar
+from .logger import create_logger
 
 
-def create_logger(name: str, level: int = logging.DEBUG):
-    import sys
-    logger = logging.Logger(name)
-    ch = logging.StreamHandler(sys.stdout)
+def grouper(iterable, n, fillvalue=None):
+    """Collect data into fixed-length chunks or blocks"""
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
 
-    formatting = "[{}] %(levelname)s\t%(module)s.%(funcName)s\tLine=%(lineno)d | %(message)s".format(name)
-    formatter = logging.Formatter(formatting)
-    ch.setFormatter(formatter)
 
-    logger.addHandler(ch)
-    logger.setLevel(level)
-
-    return logger
+class SpamType(Enum):
+    NONE = 0
+    CONSECUTIVE = 1
+    DIFFERENT = 2
+    SAME = 3
 
 
 class Bot:
@@ -33,7 +35,6 @@ class Bot:
     def __init__(self, updater):
         self.chats: Dict[str, Chat] = {}
         self.updater = updater
-        self.user_ids = set()
         self.state: Dict = {
             "main_id": None
         }
@@ -44,23 +45,29 @@ class Bot:
         chat = self.chats[chat_id]
         return chat.show_dice()
 
-    def show_dices(self):
+    def show_dice_keyboards(self):
         for chat_id in self.chats.keys():
+            self.hide_attend(chat_id)
             self.show_dice(chat_id)
+
+    def hide_attend(self, chat_id):
+        chat: Chat = self.chats[chat_id]
+        return chat.hide_attend()
 
     def save_state(self):
         self.state["chats"] = [chat.serialize() for chat in self.chats.values()]
         with open("state.json", "w+") as f:
             json.dump(self.state, f)
 
-    def register(self, update: Update, send_success: bool = True) -> bool:
+    def register(self, update: Update, send_response: bool = True) -> bool:
         self.logger.info("Register")
         chat_id = update.message.chat_id
         self.logger.info("Register: {}".format(chat_id))
 
         if chat_id in self.chats.keys():
             self.logger.info("Chat already registered")
-            self.updater.bot.send_message(chat_id=chat_id, text="Why would you register twice, dumbass!")
+            if send_response:
+                self.updater.bot.send_message(chat_id=chat_id, text="Why would you register twice, dumbass!")
             return False
 
         self.logger.info("Chat is being registered")
@@ -68,9 +75,10 @@ class Bot:
             self.chats[chat_id] = Chat(chat_id, self.updater.bot)
             self.save_state()
         except Exception as e:
-            print("Exception: {}".format(e))
+            sentry_sdk.capture_exception()
+            self.logger.error(e)
 
-        if send_success:
+        if send_response:
             self.logger.info("Chat successfully registered")
             self.updater.bot.send_message(chat_id=chat_id, text="You have been registered.")
 
@@ -97,25 +105,61 @@ class Bot:
         self.logger.info("Register main")
         chat_id = update.message.chat_id
         if not self.state.get("main_id", ""):
-            registered = self.register(update, False)
-            if registered:
-                self.state["main_id"] = chat_id
-                self.save_state()
-                self.updater.bot.send_message(chat_id=chat_id, text="You have been registered as the main chat.")
+            _ = self.register(update, False)
+            self.state["main_id"] = chat_id
+            self.save_state()
+            self.updater.bot.send_message(chat_id=chat_id, text="You have been registered as the main chat.")
         else:
-            if chat_id == self.state["main_id"]:
-                user_id = update.message.from_user.id
-                until_ban_time = datetime.datetime.now() + datetime.timedelta(hours=2)
-                try:
-                    self.updater.bot.restrict_chat_member(chat_id, user_id, can_send_messages=False,
-                                                          until_date=until_ban_time)
-                except Exception as e:
-                    # Admins can't be banned
-                    return False
-                self.updater.bot.send_message(chat_id=chat_id, text="User {} has been banned for 2 hours.".format(
-                    update.message.from_user.username))
+            if chat_id == self.state.get("main_id", ""):
+                until_date = timedelta(hours=2)
+                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date)
+            else:
+                self.updater.bot.send_message(chat_id=chat_id,
+                                              text="You can't register as the main chat, since there already is one.")
 
         self.save_state()
+
+    def _get_user_from_update(self, update: Update) -> Optional[User]:
+        user = None
+        chat = self.chats.get(update.message.chat_id)
+        if chat and update.message:
+            if not chat.get_user_by_id(update.message.from_user.id):
+                user = User.from_tuser(update.message.from_user)
+                chat.add_user(user)
+
+        return user
+
+    def restrict_user(self, chat_id: str, user: User, until_date: timedelta, **kwargs):
+        timestamp: int = (datetime.now() + until_date).timestamp()
+        try:
+            result = self.updater.bot.restrict_chat_member(chat_id, user._id, until_date=timestamp,
+                                                           **kwargs)
+            if not kwargs.get("can_send_message", False):
+                self.updater.bot.send_message(chat_id=chat_id, text="User {} has been restricted for 2 hours.".format(
+                    user.name))
+        except TelegramError as e:
+            if e.message == "Can't demote chat creator" and not kwargs.get("can_send_message", False):
+                message = "Sadly, user {} couldn't be restricted due to: `{}`. Shame on {}".format(user.name,
+                                                                                                   e.message,
+                                                                                                   user.name)
+                self.logger.info("{}".format(message))
+                self.updater.bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
+            self.logger.error(e)
+            result = False
+
+        try:
+            user.muted = result
+        except KeyError:
+            self.logger.warning("User {} was not in chat {}".format(user, chat_id))
+            self.chats.get(chat_id).add_user(user)
+
+        return result
+
+    def unmute_user(self, chat_id: str, user: User):
+        self.restrict_user(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True)
+
+    def mute_user(self, chat_id: str, user: User, until_date: timedelta):
+        self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False)
 
     def remind_users(self, update: Update = None) -> bool:
         if update:
@@ -132,37 +176,47 @@ class Bot:
         chat_user: TUser = callback.from_user
         user = User.from_tuser(chat_user)
         chat = self.chats[callback.message.chat.id]
+        chat.add_user(user)
         chat.set_attend_callback(callback)
 
         attends = callback.data == "attend_True"
-        try:
-            if attends:
-                chat.current_event.add_attendee(user)
-            else:
-                chat.current_event.add_absentee(user)
-        except Exception as e:
-            print("Exception: {}".format(e))
+        if attends:
+            chat.current_event.add_attendee(user)
+            self.unmute_user(chat._id, user)
+        else:
+            chat.current_event.add_absentee(user)
+            try:
+                chat.current_event.remove_attendee(user)
+                Timer(15 * 60, self.mute_user, [chat._id, user, timedelta(hours=1)]).start()
+            except Exception as e:
+                sentry_sdk.capture_exception()
+                self.logger.exception(e)
 
-        self.save_state()
-        chat.update_attend_message()
+        try:
+            self.save_state()
+            chat.update_attend_message()
+        except Exception as e:
+            sentry_sdk.capture_exception()
+            self.logger.exception(e)
 
     def handle_dice_callback(self, update: Update):
         callback: CallbackQuery = update.callback_query
         chat_user: TUser = callback.from_user
+        user = User.from_tuser(chat_user)
         chat: Chat = self.chats[callback.message.chat.id]
         chat.set_dice_callback(callback)
 
         attendees: List[User] = chat.current_event.attendees
 
-        if chat_user.name not in [user.name for user in attendees]:
-            self.logger.info("User {} is not in attendees list".format(chat_user.name))
+        if user.name not in [user.name for user in attendees]:
+            self.logger.info("User {} is not in attendees list".format(user.name))
             return False
 
         data = re.match("dice_(.*)", callback.data).groups()[0]
         if data in map(str, range(1, 7)):
-            [user for user in attendees if user.name == chat_user.name][0].set_roll(int(data))
+            [attendee for attendee in attendees if attendee.name == attendee.name][0].set_roll(int(data))
         else:
-            [user for user in attendees if user.name == chat_user.name][0].set_jumbo(data == "+1")
+            [attendee for attendee in attendees if attendee.name == attendee.name][0].set_jumbo(data == "+1")
 
         self.save_state()
         chat.update_dice_message()
@@ -193,305 +247,103 @@ class Bot:
 
         self.save_state()
 
+    def check_for_spam(self, chat_messages: Dict[Chat, Iterable[Message]]):
+        for chat, messages in chat_messages.items():
+            user_messages = dict((chat.get_user_by_id(user_id), set(user_messages)) for user_id, user_messages in
+                                 groupby(messages, lambda message: message.from_user.id))
+            for user, user_messages in user_messages.items():
+                user.messages = user_messages
+                spam_type = self._check_user_spam(list(user_messages))
+                spam_type_message = ""
+                timeout = timedelta(seconds=30)
+                if spam_type == SpamType.CONSECUTIVE:
+                    spam_type_message = "User has been muted due to being the only one sending messages (repeatedly)"
+                    timeout = timedelta(minutes=30)
+                elif spam_type == SpamType.DIFFERENT:
+                    spam_type_message = f"User ({user}) has been muted for sending different messages in a short time"
+                    timeout = timedelta(hours=1)
+                elif spam_type == SpamType.SAME:
+                    spam_type_message = f"User ({user}) is spamming the same message over and over again"
+                    timeout = timedelta(hours=2)
+                else:
+                    self.logger.debug("User ({}) is not spamming".format(user))
 
-class User:
-    def __init__(self, name: str):
-        self.name = name
-        self.roll = -1
-        self.jumbo = False
-
-    def set_roll(self, roll: int) -> None:
-        self.roll = roll
-
-    def set_jumbo(self, jumbo: bool) -> None:
-        self.jumbo = jumbo
-
-    def __eq__(self, other):
-        if not isinstance(other, User):
-            return False
-
-        return other.name == self.name
-
-    def __hash__(self):
-        return self.name.__hash__()
-
-    def __str__(self) -> str:
-        return "{} ({}{})".format(self.name, self.roll, "+1" if self.jumbo else "")
-
-    @classmethod
-    def from_tuser(cls, chat_user):
-        return User(chat_user.name)  # TODO
-
-    def serialize(self):
-        return {
-            "name": self.name,
-            "roll": self.roll,
-            "jumbo": self.jumbo
-        }
-
-
-class Event:
-    def __init__(self):
-        self.timestamp = self._next_monday()
-        self.logger = create_logger("event_{}".format(self.timestamp))
-        self.logger.info("Create event")
-        self.attendees: Set[User] = set()
-        self.absentees: Set[User] = set()
-        self.logger.info("Created event for {}".format(self.timestamp))
-
-    def add_absentee(self, user: User):
-        self.logger.info("Add absentee {} to event".format(user))
-        try:
-            self.remove_attendee(user)
-        except KeyError:
-            self.logger.info("User was not in attendees: {}".format(user))
-
-        return self.absentees.add(user)
-
-    def remove_absentee(self, user: User):
-        self.logger.info("Remove absentee {} from event".format(user))
-        self.absentees.remove(user)
-        self.add_attendee(user)
-
-    def add_attendee(self, user: User):
-        self.logger.info("Add {} to event".format(user))
-        try:
-            self.remove_absentee(user)
-        except KeyError:
-            self.logger.info("User was not in absentees: {}".format(user))
-        self.attendees.add(user)
-
-    def remove_attendee(self, user: User):
-        self.logger.info("Remove {} from event".format(user))
-        self.attendees.remove(user)
-        self.add_absentee(user)
-
-    def serialize(self) -> Dict:
-        self.logger.info("Serialize event")
-        serialized = {
-            "timestamp": self.timestamp.strftime("%d.%m.%Y"),
-            "attendees": [attendee.serialize() for attendee in self.attendees]
-        }
-        self.logger.info("Serialized event: {}".format(serialized))
-        return serialized
+                if spam_type_message and not user.muted:
+                    self.logger.warning(spam_type_message)
+                    self.mute_user(chat._id, user, timeout)
 
     @staticmethod
-    def _next_monday():
-        # self.logger.info("Calculate _next_monday")
-        today = datetime.datetime.today()
-        weekday = 0
+    def _check_user_spam(user_messages: List[Message]) -> SpamType:
+        """
 
-        d = datetime.date(today.year, today.month, today.day)
-        days_ahead = weekday - d.weekday()
+        :rtype: SpamType
+        """
+        consecutive_message_limit: int = 8
+        consecutive_message_timeframe: int = 5
+        same_message_limit: int = 3
+        same_message_timeframe: int = 2
+        different_message_limit: int = 15
+        different_message_timeframe: int = 2
 
-        next_monday = d + datetime.timedelta(days_ahead)
-        # self.logger.info("Next monday is on: {}".format(next_monday))
-        return next_monday
+        def is_consecutive(sorted_messages: List[Optional[Message]]):
+            if None in sorted_messages:
+                return False
+            minimum = sorted_messages[0].message_id
+            maximum = sorted_messages[-1].message_id
 
+            return sum([message.message_id for message in sorted_messages]) == maximum * (maximum + 1) / 2 - (
+                    (minimum - 1) * (minimum / 2))
 
-class Chat:
-    events: List[Event] = []
-    pinned_message_id: Optional[int] = None
-    current_event: Optional[Event]
-    attend_callback: CallbackQuery
-    dice_callback: CallbackQuery
+        first = user_messages[0].date
+        last = user_messages[-1].date
+        if len(user_messages) > different_message_limit and last - first < timedelta(hours=different_message_timeframe):
+            return SpamType.DIFFERENT
 
-    def __init__(self, id: str, bot: TBot):
-        self.logger = create_logger("chat_{}".format(id))
-        self.logger.info("Create chat")
-        self.id: str = id
-        self.bot: TBot = bot
-        self.logger.info("Created chat")
-        self.start_event()
+        groups = grouper(user_messages, consecutive_message_limit)
+        for message_group in groups:
+            if is_consecutive(message_group):
+                first = message_group[0].date
+                last = message_group[-1].date
+                if last - first < timedelta(minutes=consecutive_message_timeframe):
+                    return SpamType.CONSECUTIVE
 
-    def serialize(self):
-        self.logger.info("Serialize chat")
-        serialized = {
-            "id": self.id,
-            "current_event": self.current_event.serialize(),
-            "pinned_message_id": self.pinned_message_id
-        }
-        self.logger.info("Serialized chat: {}".format(serialized))
+        same_text_messages = Counter([message.text for message in user_messages])
+        for message_text, count in same_text_messages.items():
+            if count > same_message_limit:
+                messages = list(filter(lambda m: m.text == message_text, user_messages))
+                first = messages[0].date
+                last = messages[-1].date
+                if last - first < timedelta(hours=same_message_timeframe):
+                    return SpamType.SAME
 
-        return serialized
+        return SpamType.NONE
 
-    def pin_message(self, message_id: int, disable_notifications: bool = True, unpin: bool = False) -> bool:
-        self.logger.info("Pin message")
-        if unpin:
-            self.logger.info("Force unpin before pinning")
-            self.unpin_message()
+    def handle_message(self, update: Update):
+        self.logger.info("Handle message: {}".format(update.message.text))
+        if update.message.chat_id not in self.chats.keys():
+            self.logger.error("Chat {} hasn't been registered.".format(update.message.chat_id))
+            self.updater.bot.send_message(chat_id=update.message.chat_id,
+                                          text="Please register before performing an action (/register).")
+            return
+        chat: Chat = self.chats.get(update.message.chat_id)
+        chat.add_user(User.from_tuser(update.message.from_user))
+        chat.add_message(update.message)
 
-        if not self.pinned_message_id and self.bot.pin_chat_message(chat_id=self.id,
-                                                                    message_id=message_id,
-                                                                    disable_notification=disable_notifications):
-            self.pinned_message_id = message_id
-            self.logger.info("Successfully pinned message: {}".format(message_id))
-            return True
-
-        self.logger.info("Pinning message failed")
-        return False
-
-    def unpin_message(self):
-        self.logger.info("Unpin message")
-        if self.bot.unpin_chat_message(chat_id=self.id):
-            self.logger.info("Successfully unpinned message")
-            self.pinned_message_id = None
-            return True
-
-        self.logger.info("Failed to unpin message")
-        return False
-
-    def close_current_event(self):
-        self.logger.info("Close current event")
-        self.events.append(self.current_event)
-        self.current_event = None
-
-    def start_event(self, event: Optional[Event] = None):
-        self.logger.info("Start event")
-        if not event:
-            self.logger.info("No event given, create one")
-            event = Event()
-
-        self.current_event = event
-        self.logger.info("Started event")
-
-    def get_attend_keyboard(self) -> InlineKeyboardMarkup:
-        self.logger.info("Get attend keyboard")
-        return InlineKeyboardMarkup([[
-            InlineKeyboardButton(
-                text="Dabei",
-                callback_data="attend_True"),
-            InlineKeyboardButton(
-                text="Nicht dabei",
-                callback_data="attend_False")
-        ]])
-
-    def get_dice_keyboard(self) -> InlineKeyboardMarkup:
-        self.logger.info("Get dice keyboard")
-        return InlineKeyboardMarkup([[
-            InlineKeyboardButton(
-                text=str(i),
-                callback_data="dice_{}".format(str(i))) for i in range(1, 4)
-        ], [
-            InlineKeyboardButton(
-                text=str(i),
-                callback_data="dice_{}".format(str(i))) for i in range(4, 7)
-        ], [
-
-            InlineKeyboardButton(
-                text="Normal",
-                callback_data="dice_-1"),
-            InlineKeyboardButton(
-                text="Jumbo",
-                callback_data="dice_+1")
-        ]])
-
-    def update_attend_message(self):
-        self.logger.info("Update attend message")
-        if not self.attend_callback or not self.current_event:
-            self.logger.info("Failed to update attend message: attend_callback: {} | self.current_event".format(
-                self.attend_callback,
-                self.current_event.serialize()
-            ))
-            raise Exception  # TODO
-
-        message = self._build_attend_message()
-        self.logger.info("Edit message ({})".format(message))
-        result = self.attend_callback.edit_message_text(text=message, reply_markup=self.get_attend_keyboard())
-        self.logger.info("Answer attend callback")
-        self.attend_callback.answer()
-
-        self.logger.info("edit_message_text returned: {}".format(result))
-        return result
-
-    def _build_attend_message(self):
-        self.logger.info("Build attend message for event: {}".format(self.current_event))
-        message = "Wer ist dabei?"
-        attendees = self.current_event.attendees
-        absentees = self.current_event.absentees
-
-        if attendees:
-            self.logger.info("attend message has attendees")
-            message += " Bisher: " + ", ".join([user.name for user in attendees])
+        try:
+            self.check_for_spam({chat: chat.messages()})
+        except Exception as e:
+            sentry_sdk.capture_exception()
+            self.logger.exception("{}".format(e))
         else:
-            self.logger.info("No attendees for event")
-        if absentees:
-            self.logger.info("attend message has absentees")
-            message += " | Nicht dabei: " + ", ".join([user.name for user in absentees])
-        else:
-            self.logger.info("No absentees for event")
+            self.logger.info("Handled message")
 
-        self.logger.info("Successfully built the attend message: {}".format(message))
-        return message
+    def set_state(self, state: Dict[str, Any]):
+        self.state = state
+        self.state["main_id"] = self.state.get("main_id", "")
+        self.chats = {schat["id"]: Chat.deserialize(schat, self.updater.bot) for schat in state.get("chats", [])}
 
-    def update_dice_message(self):
-        self.logger.info("Update price message")
-        if not self.dice_callback or not self.current_event:
-            self.logger.info("Failed to update price message: dice_callback: {} | self.current_event".format(
-                self.dice_callback,
-                self.current_event.serialize()
-            ))
-            self.logger.info("Raise exception")
-            raise Exception  # TODO
+        return True
 
-        message = self._build_dice_message()
-        self.logger.info("Edit message ({})".format(message))
-        result = self.dice_callback.edit_message_text(text=message, reply_markup=self.get_dice_keyboard())
-        self.logger.info("Answer dice callback")
-        self.dice_callback.answer()
-
-        self.logger.info("edit_message_text returned: {}".format(result))
-        return result
-
-    def _build_dice_message(self):
-        self.logger.info("Build price message")
-        message = "Was hast du gewürfelt?"
-        attendees = [attendee for attendee in self.current_event.attendees if attendee.roll != -1]
-
-        if attendees:
-            self.logger.info("price message has attendees")
-            return message + " Bisher: " + ", ".join(map(str, attendees))
-
-        return message
-
-    def _send_message(self, **kwargs):
-        self.logger.info(
-            "Send message with: {}".format(" | ".join(["{}: {}".format(key, val) for key, val in kwargs.items()]))
-        )
-        result = self.bot.send_message(chat_id=self.id, **kwargs)
-
-        self.logger.info("Result of sending message: {}".format(result))
-        return result
-
-    def show_dice(self) -> Message:
-        self.logger.info("Showing dice")
-        result = self._send_message(text=self._build_dice_message(), reply_markup=self.get_dice_keyboard())
-        if result:
-            self.logger.info("Successfully shown dice: {}".format(result))
-            self.logger.info("Assigning internal id and pin message: {}".format(result))
-            self.pin_message(result.message_id, unpin=True)
-        else:
-            self.logger.info("Failed to send dice message: {}".format(result))
-
-        return result
-
-    def show_attend_keyboard(self) -> Message:
-        self.logger.info("Show attend keyboard")
-        message = self._build_attend_message()
-        result = self._send_message(text=message, reply_markup=self.get_attend_keyboard())
-        if result:
-            self.logger.info("Successfully shown attend: {}".format(result))
-            self.logger.info("Assigning internal id and pin message: {}".format(result))
-            self.pin_message(result.message_id)
-        else:
-            self.logger.info("Failed to send attend message: {}".format(result))
-
-        return result
-
-    def set_attend_callback(self, callback: CallbackQuery):
-        self.logger.info("Set attend callback")
-        self.attend_callback = callback
-
-    def set_dice_callback(self, callback: CallbackQuery):
-        self.logger.info("Set dice callback")
-        self.dice_callback = callback
+    def show_attend_keyboards(self):
+        for _, chat in self.chats.items():
+            chat.show_attend_keyboard()

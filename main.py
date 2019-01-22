@@ -1,25 +1,42 @@
-import datetime
 import os
 import threading
 import time
+from datetime import datetime
 
 import schedule
-from telegram.ext import CommandHandler, Updater, CallbackQueryHandler
+import sentry_sdk
+from pytz import timezone
+from telegram import TelegramError
+from telegram.ext import CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters
 
-from dicers_bot import Bot
+from dicers_bot import Bot, create_logger
 
 
-def run_scheduler(bot):
-    schedule.every().monday.at("14:00").do(bot.remind_users)
-    schedule.every().tuesday.at("00:00").do(bot.reset)
-    schedule.every().monday.at("20:10").do(bot.show_dices)
+def run_scheduler(bot: Bot):
+    logger = create_logger("run_scheduler")
+    logger.debug("Start run_scheduler")
+    default_timezone = timezone("Europe/Berlin")
+    today: datetime = datetime.today()
+    attend_time: str = default_timezone.localize(today.replace(hour=14, minute=0)).strftime("%H:%M")
+    reset_time: str = default_timezone.localize(today.replace(hour=0, minute=0)).strftime("%H:%M")
+    dice_time: str = default_timezone.localize(today.replace(hour=20, minute=30)).strftime("%H:%M")
+    logger.info("Set schedule")
+    schedule.every().monday.at(attend_time).do(bot.show_attend_keyboards)
+    schedule.every().monday.at(dice_time).do(bot.show_dice_keyboards)
+    schedule.every().tuesday.at(reset_time).do(bot.reset)
+
+    logger.info("Run schedule")
     while True:
         schedule.run_pending()
         time.sleep(5)
 
 
-def start(token: str):
-    updater = Updater(token=token)
+def handle_telegram_error(error: TelegramError):
+    create_logger("handle_telegram_error").error(error)
+
+
+def start(bot_token: str):
+    updater = Updater(token=bot_token)
     bot = Bot(updater)
 
     dispatcher = updater.dispatcher
@@ -34,7 +51,7 @@ def start(token: str):
                                                                                      text="[{}]".format(
                                                                                          update.message.chat_id))))
     dispatcher.add_handler(CommandHandler("server_time", lambda b, u: b.send_message(chat_id=u.message.chat_id,
-                                                                                     text=datetime.datetime.now().strftime(
+                                                                                     text=datetime.now().strftime(
                                                                                          "%d-%m-%Y %H-%M-%S"))))
     dispatcher.add_handler(CommandHandler("version", lambda b, u: b.send_message(chat_id=u.message.chat_id,
                                                                                  text="{{VERSION}}")))
@@ -42,24 +59,24 @@ def start(token: str):
         CallbackQueryHandler(lambda _, u: bot.handle_attend_callback(u), pattern="attend_(.*)"))
     dispatcher.add_handler(
         CallbackQueryHandler(lambda _, u: bot.handle_dice_callback(u), pattern="dice_(.*)"))
-
-    user_file = "users.json"
-    if os.path.exists(user_file):
-        with open(user_file) as f:
-            bot.user_ids = set(json.load(f))
-    else:
-        bot.user_ids = set()
+    dispatcher.add_handler(
+        MessageHandler(Filters.text, lambda _, update: bot.handle_message(update)))
+    dispatcher.add_error_handler(
+        lambda _, error: handle_telegram_error(error)
+    )
 
     state_file = "state.json"
     if os.path.exists(state_file):
-        with open(state_file) as f:
+        with open(state_file) as file:
             try:
-                state = json.load(f)
+                state = json.load(file)
             except json.decoder.JSONDecodeError as e:
-                print("Unable to load previous state: {}".format(e))
+                create_logger("state.json").warning(f"Unable to load previous state: {e}")
                 state = {"main_id": None}
-        bot.state = state
 
+        bot.set_state(state)
+
+    create_logger("thread").info("Start scheduler thread")
     t = threading.Thread(target=run_scheduler, args=[bot])
     t.start()
 
@@ -72,9 +89,14 @@ if __name__ == "__main__":
     import json
 
     with open("secrets.json") as f:
-        token = json.load(f)['token']
+        content = json.load(f)
+        token = content['token']
+        sentry_dsn = content['sentry_dsn']
 
+    sentry_sdk.init(sentry_dsn)
+
+    # noinspection PyBroadException
     try:
         start(token)
-    except Exception as e:
-        print(e)
+    except Exception:
+        sentry_sdk.capture_exception()
