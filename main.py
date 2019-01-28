@@ -62,7 +62,7 @@ def start(bot_token: str):
     dispatcher.add_handler(
         MessageHandler(Filters.text, lambda _, update: bot.handle_message(update)))
     dispatcher.add_error_handler(
-        lambda _, error: handle_telegram_error(error)
+        lambda _bot, _update, error: handle_telegram_error(error)
     )
 
     state_file = "state.json"
