@@ -91,7 +91,10 @@ if __name__ == "__main__":
     with open("secrets.json") as f:
         content = json.load(f)
         token = content['token']
-        sentry_dsn = content['sentry_dsn']
+        try:
+            sentry_dsn = content['sentry_dsn']
+        except KeyError:
+            sentry_dsn = None
 
     sentry_sdk.init(sentry_dsn)
 
