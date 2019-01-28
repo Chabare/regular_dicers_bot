@@ -27,7 +27,7 @@ class User:
         if not isinstance(other, User):
             return False
 
-        return other.name == self.name
+        return other.id == self.id
 
     def __hash__(self):
         return self.name.__hash__()
