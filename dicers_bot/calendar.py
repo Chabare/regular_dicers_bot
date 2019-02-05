@@ -25,12 +25,7 @@ class Calendar:
     last_event = None
 
     def __init__(self, filename: str = "credentials.json"):
-        store = file.Storage(filename)
-        credentials = store.get()
-        if not credentials or credentials.invalid:
-            flow = client.flow_from_clientsecrets(filename, SCOPES)
-            flow.user_agent = "regular_dicers_bot"
-            credentials = tools.run_flow(flow, store)
+        credentials = self._load_credentials(filename)
         self.service = build("calendar", "v3", http=credentials.authorize(Http()))
 
     def create(self):
@@ -54,14 +49,30 @@ class Calendar:
         return gevent.get("htmlLink")
 
     @staticmethod
-    def get_start_time():
+    def _load_credentials(filename) -> client.Credentials:
+        store = file.Storage(filename)
+
+        try:
+            credentials = store.get()
+        except KeyError:
+            credentials = None
+
+        if not credentials or credentials.invalid:
+            flow = client.flow_from_clientsecrets(filename, SCOPES)
+            flow.user_agent = "regular_dicers_bot"
+            return tools.run_flow(flow, store)
+
+        return credentials
+
+    @staticmethod
+    def _get_start_time():
         today = datetime.today()
         start = today.replace(hour=21, minute=0, second=0, microsecond=0)
 
         return start
 
     @staticmethod
-    def get_end_time():
+    def _get_end_time():
         today = datetime.today()
         end = today.replace(hour=23, minute=30, second=0, microsecond=0)
 
@@ -69,5 +80,5 @@ class Calendar:
 
     def fill_base_event(self):
         date_format = "%Y-%m-%dT%H:%M:%S"
-        self.event["start"]["dateTime"] = self.get_start_time().strftime(date_format)
-        self.event["end"]["dateTime"] = self.get_end_time().strftime(date_format)
+        self.event["start"]["dateTime"] = self._get_start_time().strftime(date_format)
+        self.event["end"]["dateTime"] = self._get_end_time().strftime(date_format)
