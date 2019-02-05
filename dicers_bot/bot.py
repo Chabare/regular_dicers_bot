@@ -159,7 +159,8 @@ class Bot:
         self.restrict_user(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True)
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta):
-        self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False)
+        if not user.muted and user in self.chats[chat_id].current_event.absentees:
+            self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False)
 
     def remind_users(self, update: Update = None) -> bool:
         if update:
@@ -182,7 +183,8 @@ class Bot:
         attends = callback.data == "attend_True"
         if attends:
             chat.current_event.add_attendee(user)
-            self.unmute_user(chat.id, user)
+            if user.muted:
+                self.unmute_user(chat.id, user)
         else:
             chat.current_event.add_absentee(user)
             try:
