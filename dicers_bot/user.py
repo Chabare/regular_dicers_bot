@@ -37,7 +37,7 @@ class User:
 
     @classmethod
     def from_tuser(cls, chat_user: TUser):
-        user = User(chat_user.name, chat_user.id, chat_user)
+        user = User(chat_user.first_name, chat_user.id, chat_user)
 
         return user
 
