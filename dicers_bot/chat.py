@@ -35,7 +35,7 @@ class Chat:
         self.logger.info("Serialize chat")
         serialized = {
             "id": self.id,
-            "current_event": self.current_event.serialize(),
+            "current_event": self.current_event.serialize() if self.current_event else None,
             "pinned_message_id": self.pinned_message_id,
             "events": [event.serialize() for event in self.events]
         }

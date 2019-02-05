@@ -48,6 +48,9 @@ class Event:
 
     @classmethod
     def deserialize(cls, json_object: Dict):
+        if not json_object:
+            return None
+
         event = Event()
         event.timestamp = datetime.strptime(json_object["timestamp"], event.date_format)
         event.attendees = set([User.deserialize(attendee) for attendee in json_object["attendees"]])
