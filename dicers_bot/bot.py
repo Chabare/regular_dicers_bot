@@ -215,16 +215,17 @@ class Bot:
 
         attendees: List[User] = chat.current_event.attendees
 
-        if user.name not in [user.name for user in attendees]:
+        if user.id not in [user.id for user in attendees]:
             self.logger.info("User {} is not in attendees list".format(user.name))
             callback.answer()
             return False
+        attendee = [attendee for attendee in attendees if attendee.id == user.id][0]
 
         data = re.match("dice_(.*)", callback.data).groups()[0]
         if data in map(str, range(1, 7)):
-            [attendee for attendee in attendees if attendee.name == attendee.name][0].set_roll(int(data))
+            attendee.set_roll(int(data))
         else:
-            [attendee for attendee in attendees if attendee.name == attendee.name][0].set_jumbo(data == "+1")
+            attendee.set_jumbo(data == "+1")
 
         self.save_state()
         chat.update_dice_message()
