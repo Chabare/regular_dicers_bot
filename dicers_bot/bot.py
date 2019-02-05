@@ -217,6 +217,7 @@ class Bot:
 
         if user.name not in [user.name for user in attendees]:
             self.logger.info("User {} is not in attendees list".format(user.name))
+            callback.answer()
             return False
 
         data = re.match("dice_(.*)", callback.data).groups()[0]
