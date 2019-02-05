@@ -205,9 +205,10 @@ class Chat:
             message += ", ".join(
                 ["{} ({}{})".format(attendee.name, attendee.roll, "+1" if attendee.jumbo else "") for attendee in
                  attendees])
-            message += "\n= {}€".format(
-                sum([(attendee.roll + 1 if attendee.jumbo else attendee.roll + 0) for attendee in attendees if
-                     attendee != -1]))
+
+            rolls = [(attendee.roll + 1 if attendee.jumbo else attendee.roll + 0) for attendee in attendees if
+                     attendee.roll != -1]
+            message += "\nΣ: {}€ + {}€ Trinkgeld".format(sum(rolls), len(rolls))
 
         return message
 
