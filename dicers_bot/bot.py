@@ -159,7 +159,7 @@ class Bot:
         self.restrict_user(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True)
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta):
-        if not user.muted and user in self.chats[chat_id].current_event.absentees:
+        if not user.muted:
             self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False)
 
     def remind_users(self, update: Update = None) -> bool:
@@ -180,6 +180,11 @@ class Bot:
         chat.add_user(user)
         chat.set_attend_callback(callback)
 
+        def _mute_user_if_absent():
+            chat_id = chat.id
+            if user in self.chats[chat_id].current_event.absentees:
+                self.mute_user(chat_id, user, timedelta(hours=1))
+
         attends = callback.data == "attend_True"
         if attends:
             chat.current_event.add_attendee(user)
@@ -189,7 +194,7 @@ class Bot:
             chat.current_event.add_absentee(user)
             try:
                 chat.current_event.remove_attendee(user)
-                Timer(15 * 60, self.mute_user, [chat.id, user, timedelta(hours=1)]).start()
+                Timer(15 * 60, _mute_user_if_absent).start()
             except Exception as e:
                 sentry_sdk.capture_exception()
                 self.logger.exception(e)
@@ -270,7 +275,7 @@ class Bot:
                 else:
                     self.logger.debug("User ({}) is not spamming".format(user))
 
-                if spam_type_message and not user.muted:
+                if spam_type_message:
                     self.logger.warning(spam_type_message)
                     self.mute_user(chat.id, user, timeout)
 
