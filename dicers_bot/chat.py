@@ -86,7 +86,8 @@ class Chat:
 
     def close_current_event(self):
         self.logger.info("Close current event")
-        self.events.append(self.current_event)
+        if self.current_event:
+            self.events.append(self.current_event)
         self.current_event = None
 
     def start_event(self, event: Optional[Event] = None):
