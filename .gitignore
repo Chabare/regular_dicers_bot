@@ -6,3 +6,5 @@ venv
 users.json
 credentials.json
 state.json
+
+__pycache__/
