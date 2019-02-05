@@ -4,6 +4,8 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 
+from .logger import create_logger
+
 SCOPES = "https://www.googleapis.com/auth/calendar"
 base_event = {
     "summary": "Würfeln",
@@ -25,10 +27,23 @@ class Calendar:
     last_event = None
 
     def __init__(self, filename: str = "credentials.json"):
-        credentials = self._load_credentials(filename)
-        self.service = build("calendar", "v3", http=credentials.authorize(Http()))
+        logger = create_logger("calendar")
+        self.logger = logger
+
+        # noinspection PyBroadException
+        try:
+            credentials = self._load_credentials(filename)
+            self.service = build("calendar", "v3", http=credentials.authorize(Http()))
+            logger.info("Calendar initialized.")
+        except Exception as e:
+            logger.warning("Calendar module is disabled. Reason: %s", str(e))
+            self.service = None
 
     def create(self):
+        service = self.service
+        if not service:
+            return
+
         if datetime.today().weekday() != 0:
             print("Not monday ({})".format(datetime.today().weekday()))
             return
@@ -41,8 +56,8 @@ class Calendar:
             )
             return
 
-        gevent = self.service.events().insert(calendarId="43httl0ouo48t260oqturfrs84@group.calendar.google.com",
-                                              body=self.event).execute()
+        gevent = service.events().insert(calendarId="43httl0ouo48t260oqturfrs84@group.calendar.google.com",
+                                         body=self.event).execute()
         self.last_event = self.event
         self.event = base_event
 
