@@ -248,9 +248,15 @@ class Bot:
         return bool(result)
 
     def reset(self):
-        for _, chat in self.chats.items():
-            chat.close_current_event()
-            chat.unpin_message()
+        self.logger.debug("Attempting reset")
+
+        for chat in self.chats.values():
+            # noinspection PyBroadException
+            try:
+                chat.close_current_event()
+                chat.unpin_message()
+            except Exception:
+                self.logger.error("Could not reset current state for chat %s", chat.id, exc_info=True)
 
         self.save_state()
 

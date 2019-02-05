@@ -197,7 +197,7 @@ class Chat:
 
     def _build_dice_message(self):
         self.logger.info("Build price message")
-        message = "Was hast du gewürfelt?"
+        message = "Was hast du gewürfelt?\n"
         attendees = [attendee for attendee in self.current_event.attendees if attendee.roll != -1]
 
         if attendees:
@@ -205,7 +205,7 @@ class Chat:
             message += ", ".join(
                 ["{} ({}{})".format(attendee.name, attendee.roll, "+1" if attendee.jumbo else "") for attendee in
                  attendees])
-            message += "\n={}".format(
+            message += "\n= {} €".format(
                 sum([(attendee.roll + 1 if attendee.jumbo else attendee.roll + 0) for attendee in attendees if
                      attendee != -1]))
 
@@ -234,6 +234,10 @@ class Chat:
 
     def show_attend_keyboard(self) -> Message:
         self.logger.info("Show attend keyboard")
+
+        # Start an event if none exists
+        self.start_event(self.current_event)
+
         message = self._build_attend_message()
         result = self._send_message(text=message, reply_markup=self.get_attend_keyboard())
         if result:
