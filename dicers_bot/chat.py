@@ -2,6 +2,7 @@ from typing import Optional, Set, List, Dict
 
 from telegram import Bot as TBot
 from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
+from telegram.error import BadRequest
 
 from dicers_bot.user import User
 from .event import Event
@@ -138,16 +139,20 @@ class Chat:
             raise Exception  # TODO
 
         message = self._build_attend_message()
-        self.logger.info("Edit message ({})".format(message))
-        result = self.attend_callback.edit_message_text(text=message, reply_markup=self.get_attend_keyboard())
+        self.logger.info("Edit message (%s)", message)
+
+        try:
+            result = self.attend_callback.edit_message_text(text=message, reply_markup=self.get_attend_keyboard())
+            self.logger.info("edit_message_text returned: %s", result)
+        except BadRequest:
+            # This will happen if the message didn't change
+            self.logger.debug("edit_message_text failed", exc_info=True)
+
         self.logger.info("Answer attend callback")
         self.attend_callback.answer()
 
-        self.logger.info("edit_message_text returned: {}".format(result))
-        return result
-
     def _build_attend_message(self):
-        self.logger.info("Build attend message for event: {}".format(self.current_event))
+        self.logger.info("Build attend message for event: %s", self.current_event)
         message = "Wer ist dabei?"
         attendees = self.current_event.attendees
         absentees = self.current_event.absentees
@@ -163,7 +168,7 @@ class Chat:
         else:
             self.logger.info("No absentees for event")
 
-        self.logger.info("Successfully built the attend message: {}".format(message))
+        self.logger.info("Successfully built the attend message: %s", message)
         return message
 
     def update_dice_message(self):
@@ -177,13 +182,17 @@ class Chat:
             raise Exception  # TODO
 
         message = self._build_dice_message()
-        self.logger.info("Edit message ({})".format(message))
-        result = self.dice_callback.edit_message_text(text=message, reply_markup=self.get_dice_keyboard())
+        self.logger.info("Edit message (%s)", message)
+
+        try:
+            result = self.dice_callback.edit_message_text(text=message, reply_markup=self.get_dice_keyboard())
+            self.logger.info("edit_message_text returned: %s", result)
+        except BadRequest:
+            # This will happen if the message didn't change
+            self.logger.debug("edit_message_text failed", exc_info=True)
+
         self.logger.info("Answer dice callback")
         self.dice_callback.answer()
-
-        self.logger.info("edit_message_text returned: {}".format(result))
-        return result
 
     def _build_dice_message(self):
         self.logger.info("Build price message")
