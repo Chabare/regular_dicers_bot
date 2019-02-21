@@ -188,6 +188,7 @@ class Bot:
         attends = callback.data == "attend_True"
         if attends:
             chat.current_event.add_attendee(user)
+            self.calendar.create()
             if user.muted:
                 self.unmute_user(chat.id, user)
         else:
