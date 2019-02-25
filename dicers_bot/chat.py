@@ -64,9 +64,15 @@ class Chat:
             self.logger.info("Force unpin before pinning")
             self.unpin_message()
 
-        if not self.pinned_message_id and self.bot.pin_chat_message(chat_id=self.id,
-                                                                    message_id=message_id,
-                                                                    disable_notification=disable_notifications):
+        successful_pin = False
+        try:
+            successful_pin = self.bot.pin_chat_message(chat_id=self.id,
+                                                       message_id=message_id,
+                                                       disable_notification=disable_notifications)
+        except TelegramError as e:
+            self.logger.error(f"Couldn't pin message due to error: {e}")
+
+        if successful_pin:
             self.pinned_message_id = message_id
             self.logger.info("Successfully pinned message: {}".format(message_id))
             return True
@@ -76,7 +82,14 @@ class Chat:
 
     def unpin_message(self):
         self.logger.info("Unpin message")
-        if self.bot.unpin_chat_message(chat_id=self.id):
+
+        successful_unpin = False
+        try:
+            successful_unpin = self.bot.unpin_chat_message(chat_id=self.id)
+        except TelegramError as e:
+            self.logger.error(f"Couldn't unpin message due to error: {e}")
+
+        if successful_unpin:
             self.logger.info("Successfully unpinned message")
             self.pinned_message_id = None
             return True
