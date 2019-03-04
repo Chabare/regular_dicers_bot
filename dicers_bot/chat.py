@@ -17,13 +17,12 @@ class Keyboard(Enum):
 
 
 class Chat:
-    events: List[Event] = []
-    pinned_message_id: Optional[int] = None
-    current_event: Optional[Event]
-    attend_callback: CallbackQuery
-    dice_callback: CallbackQuery
-
     def __init__(self, _id: str, bot: TBot):
+        self.events: List[Event] = []
+        self.pinned_message_id: Optional[int] = None
+        self.current_event: Optional[Event] = None
+        self.attend_callback: Optional[CallbackQuery] = None
+        self.dice_callback: Optional[CallbackQuery] = None
         self.current_keyboard = Keyboard.NONE
         self.logger = create_logger("chat_{}".format(_id))
         self.logger.info("Create chat")

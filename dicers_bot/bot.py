@@ -30,8 +30,6 @@ class SpamType(Enum):
 
 
 class Bot:
-    offset = 0
-
     def __init__(self, updater):
         self.chats: Dict[str, Chat] = {}
         self.updater = updater

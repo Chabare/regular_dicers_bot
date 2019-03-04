@@ -23,20 +23,18 @@ base_event = {
 
 
 class Calendar:
-    event = base_event
-    last_event = None
-
     def __init__(self, filename: str = "credentials.json"):
-        logger = create_logger("calendar")
-        self.logger = logger
+        self.event = base_event
+        self.last_event = None
+        self.logger = create_logger("calendar")
 
         # noinspection PyBroadException
         try:
             credentials = self._load_credentials(filename)
             self.service = build("calendar", "v3", http=credentials.authorize(Http()))
-            logger.info("Calendar initialized.")
+            self.logger.info("Calendar initialized.")
         except Exception as e:
-            logger.warning("Calendar module is disabled. Reason: %s", str(e))
+            self.logger.warning("Calendar module is disabled. Reason: %s", str(e))
             self.service = None
 
     def create(self):

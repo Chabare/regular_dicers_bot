@@ -4,4 +4,4 @@ python-telegram-bot
 schedule
 google-api-python-client
 oauth2client
-sentry-sdk
+sentry-sdk==0.6.8
