@@ -12,7 +12,7 @@ jobs:
       # Dump the bot token into a secrets.json
       - run: echo "{\"token\":\"$BOT_TOKEN\"}" > secrets.json
 
-      - run: python main.py --testrun
+      - run: python -O main.py --testrun
   build:
     docker:
       - image: docker:18.09-git
