@@ -17,7 +17,7 @@ def run_scheduler(bot: Bot):
     logger.debug("Start run_scheduler")
     default_timezone = timezone("Europe/Berlin")
     today: datetime = datetime.today()
-    additional_reset_time: str = default_timezone.localize(today.replace(hour=13, minute=0)).strftime("%H:%M")
+    additional_reset_time: str = default_timezone.localize(today.replace(hour=13, minute=30)).strftime("%H:%M")
     attend_time: str = default_timezone.localize(today.replace(hour=14, minute=0)).strftime("%H:%M")
     dice_time: str = default_timezone.localize(today.replace(hour=20, minute=30)).strftime("%H:%M")
     reset_time: str = default_timezone.localize(today.replace(hour=0, minute=0)).strftime("%H:%M")
