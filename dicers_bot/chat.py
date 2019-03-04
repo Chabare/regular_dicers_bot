@@ -299,3 +299,12 @@ class Chat:
             messages.extend(user.messages)
 
         return messages
+
+    def reset(self):
+        # noinspection PyBroadException
+        try:
+            self.close_current_event()
+            self.unpin_message()
+            self.current_keyboard = Keyboard.NONE
+        except Exception:
+            self.logger.error(f"Could not reset current state for chat {self.id}", exc_info=True)

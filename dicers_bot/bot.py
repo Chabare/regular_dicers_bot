@@ -255,13 +255,7 @@ class Bot:
         self.logger.debug("Attempting reset")
 
         for chat in self.chats.values():
-            # noinspection PyBroadException
-            try:
-                chat.close_current_event()
-                chat.unpin_message()
-                chat.current_keyboard = Keyboard.NONE
-            except Exception:
-                self.logger.error("Could not reset current state for chat %s", chat.id, exc_info=True)
+            chat.reset()
 
         self.save_state()
 
