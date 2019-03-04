@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional, Set, List, Dict
 
 from telegram import Bot as TBot
@@ -9,6 +10,12 @@ from .event import Event
 from .logger import create_logger
 
 
+class Keyboard(Enum):
+    NONE = 0
+    ATTEND = 1
+    DICE = 2
+
+
 class Chat:
     events: List[Event] = []
     pinned_message_id: Optional[int] = None
@@ -17,6 +24,7 @@ class Chat:
     dice_callback: CallbackQuery
 
     def __init__(self, _id: str, bot: TBot):
+        self.current_keyboard = Keyboard.NONE
         self.logger = create_logger("chat_{}".format(_id))
         self.logger.info("Create chat")
         self.id: str = _id
@@ -238,6 +246,7 @@ class Chat:
         self.logger.info("Showing dice")
         result = self._send_message(text=self._build_dice_message(), reply_markup=self.get_dice_keyboard())
         if result:
+            self.current_keyboard = Keyboard.DICE
             self.logger.info("Successfully shown dice: {}".format(result))
             self.logger.info("Assigning internal id and pin message: {}".format(result))
             self.pin_message(result.message_id, unpin=True)
@@ -255,6 +264,7 @@ class Chat:
         message = self._build_attend_message()
         result = self._send_message(text=message, reply_markup=self.get_attend_keyboard())
         if result:
+            self.current_keyboard = Keyboard.ATTEND
             self.logger.info("Successfully shown attend: {}".format(result))
             self.logger.info("Assigning internal id and pin message: {}".format(result))
             self.pin_message(result.message_id)

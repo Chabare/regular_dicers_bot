@@ -11,7 +11,7 @@ import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram import User as TUser
 
-from dicers_bot.chat import Chat, User
+from dicers_bot.chat import Chat, User, Keyboard
 from .calendar import Calendar
 from .logger import create_logger
 
@@ -200,6 +200,9 @@ class Bot:
                 sentry_sdk.capture_exception()
                 self.logger.exception(e)
 
+            if chat.current_keyboard == Keyboard.DICE:
+                chat.update_dice_message()
+
         try:
             self.save_state()
             chat.update_attend_message()
@@ -258,6 +261,7 @@ class Bot:
             try:
                 chat.close_current_event()
                 chat.unpin_message()
+                chat.current_keyboard = Keyboard.NONE
             except Exception:
                 self.logger.error("Could not reset current state for chat %s", chat.id, exc_info=True)
 
