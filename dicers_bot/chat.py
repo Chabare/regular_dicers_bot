@@ -174,15 +174,18 @@ class Chat:
 
     def _build_attend_message(self):
         self.logger.info("Build attend message for event: %s", self.current_event)
-        message = "Wer ist dabei?"
+        message = "Wer ist dabei?" + "\nBisher: "
         attendees = self.current_event.attendees
         absentees = self.current_event.absentees
 
-        if attendees:
-            self.logger.info("attend message has attendees")
-            message += "\nBisher: " + ", ".join([user.name for user in attendees])
+        user_string = ", ".join(sorted([user.name for user in attendees]))
+        if user_string:
+            if len(attendees) == len(self.users):
+                message += "Alle 🎉"
+            else:
+                message += user_string
         else:
-            self.logger.info("No attendees for event")
+            message += "Niemand :("
         if absentees:
             self.logger.info("attend message has absentees")
             message += "\nNicht dabei: " + ", ".join([user.name for user in absentees])
