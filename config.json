@@ -1,0 +1,10 @@
+{
+  "spam": {
+      "consecutive_message_limit": 8,
+      "consecutive_message_timeframe": 5,
+      "same_message_limit": 3,
+      "same_message_timeframe": 2,
+      "different_message_limit": 15,
+      "different_message_timeframe": 2
+  }
+}
