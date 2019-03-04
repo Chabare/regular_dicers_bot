@@ -12,6 +12,7 @@ from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram import User as TUser
 
 from dicers_bot.chat import Chat, User, Keyboard
+from dicers_bot.config import Config
 from .calendar import Calendar
 from .logger import create_logger
 
@@ -38,6 +39,7 @@ class Bot:
         }
         self.calendar = Calendar()
         self.logger = create_logger("regular_dicers_bot")
+        self.config = Config("config.json")
 
     def show_dice(self, chat_id: str):
         chat = self.chats[chat_id]
@@ -271,7 +273,7 @@ class Bot:
                                  groupby(messages, lambda message: message.from_user.id))
             for user, user_messages in user_messages.items():
                 user.messages = user_messages
-                spam_type = self._check_user_spam(list(user_messages))
+                spam_type = self._check_user_spam(list(user_messages), self.config.get("spam", {}))
                 spam_type_message = ""
                 timeout = timedelta(seconds=30)
                 if spam_type == SpamType.CONSECUTIVE:
@@ -291,17 +293,17 @@ class Bot:
                     self.mute_user(chat.id, user, timeout)
 
     @staticmethod
-    def _check_user_spam(user_messages: List[Message]) -> SpamType:
+    def _check_user_spam(user_messages: List[Message], spam_config: Dict[str, int]) -> SpamType:
         """
 
         :rtype: SpamType
         """
-        consecutive_message_limit: int = 8
-        consecutive_message_timeframe: int = 5
-        same_message_limit: int = 3
-        same_message_timeframe: int = 2
-        different_message_limit: int = 15
-        different_message_timeframe: int = 2
+        consecutive_message_limit: int = spam_config.get("consecutive_message_limit", 8)
+        consecutive_message_timeframe: int = spam_config.get("consecutive_message_timeframe", 5)
+        same_message_limit: int = spam_config.get("same_message_limit", 3)
+        same_message_timeframe: int = spam_config.get("same_message_timeframe", 2)
+        different_message_limit: int = spam_config.get("different_message_limit", 15)
+        different_message_timeframe: int = spam_config.get("different_message_timeframe", 2)
 
         def is_consecutive(sorted_messages: List[Optional[Message]]):
             if None in sorted_messages:
