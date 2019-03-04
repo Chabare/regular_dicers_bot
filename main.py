@@ -1,3 +1,5 @@
+import sys
+
 import os
 import threading
 import time
@@ -81,8 +83,23 @@ def start(bot_token: str):
         bot.set_state(state)
 
     create_logger("thread").info("Start scheduler thread")
-    t = threading.Thread(target=run_scheduler, args=[bot])
+    t = threading.Thread(target=run_scheduler, daemon=True, args=[bot])
     t.start()
+
+    try:
+        if sys.argv[1] == "--testrun":
+            print("Scheduling exit in 5 seconds")
+
+            def _exit():
+                print("Exiting")
+                updater.stop()
+                updater.is_idle = False
+
+            timer = threading.Timer(5, _exit)
+            timer.setDaemon(True)
+            timer.start()
+    except IndexError:
+        pass
 
     print("Running")
     updater.start_polling()
@@ -107,3 +124,4 @@ if __name__ == "__main__":
         start(token)
     except Exception:
         sentry_sdk.capture_exception()
+        sys.exit(1)
