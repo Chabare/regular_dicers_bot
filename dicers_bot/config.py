@@ -12,7 +12,7 @@ class Config(dict):
             with open(filename, "r") as file:
                 logger.debug("Load file content as json")
                 content = json.load(file)
-                create_logger("Update config")
+                logger.debug("Update config")
                 self.update(content)
         except OSError:
             logger.error(f"Couldn't open {filename} due to an OS error", exc_info=True)
