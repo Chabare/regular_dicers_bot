@@ -145,20 +145,19 @@ class Bot:
             self.logger.error(e)
             result = False
 
-        try:
-            user.muted = result
-        except KeyError:
-            self.logger.warning("User {} was not in chat {}".format(user, chat_id))
-            self.chats.get(chat_id).add_user(user)
-
         return result
 
     def unmute_user(self, chat_id: str, user: User):
-        self.restrict_user(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True)
+        if user.muted:
+            if self.restrict_user(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True):
+                user.muted = False
+        # We'd need to parse the exception before assigning user.muted differently
 
-    def mute_user(self, chat_id: str, user: User, until_date: timedelta):
+    def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None):
         if not user.muted:
-            self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False)
+            if self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False):
+                user.muted = True
+            # We'd need to parse the exception before assigning user.muted differently
 
     def remind_users(self, update: Update = None) -> bool:
         if update:
@@ -187,8 +186,7 @@ class Bot:
         if attends:
             chat.current_event.add_attendee(user)
             self.calendar.create()
-            if user.muted:
-                self.unmute_user(chat.id, user)
+            self.unmute_user(chat.id, user)
         else:
             chat.current_event.add_absentee(user)
             try:
