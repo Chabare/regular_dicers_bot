@@ -2,7 +2,17 @@ version: 2
 jobs:
   run:
     docker:
-      - image:
+      - image: python:3.7-slim
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+
+      # Write the "version" into the main file
+      - run: sed -i -e "s/{{VERSION}}/$CIRCLE_SHA1/" main.py
+      # Dump the bot token into a secrets.json
+      - run: echo "{\"token\":\"$BOT_TOKEN\"}" > secrets.json
+
+      - run: python main.py --testrun
   build:
     docker:
       - image: docker:18.09-git
@@ -30,7 +40,10 @@ workflows:
   version: 2
   build_and_deploy:
     jobs:
+      - run
       - build:
+          requires:
+            - run
           filters:
             branches:
               only:
