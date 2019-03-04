@@ -6,4 +6,4 @@ COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD python -B -O -OO main.py
+CMD python -B -O main.py
