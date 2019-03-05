@@ -45,6 +45,8 @@ class User:
     def deserialize(cls, json: Dict[str, Any]):
         user = User(json.get("name"), json.get("id"))
         user.muted = json.get("muted", False)
+        user.roll = int(json.get("roll", -1))
+        user.jumbo = bool(json.get("jumbo", False))
 
         return user
 
