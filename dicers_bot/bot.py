@@ -110,7 +110,7 @@ class Bot:
         else:
             if chat_id == self.state.get("main_id", ""):
                 until_date = timedelta(hours=2)
-                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date)
+                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date, reason="Tried to register a new main chat")
             else:
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text="You can't register as the main chat, since there already is one.")
@@ -286,7 +286,7 @@ class Bot:
 
                 if spam_type_message:
                     self.logger.warning(spam_type_message)
-                    self.mute_user(chat.id, user, timeout)
+                    self.mute_user(chat.id, user, timeout, reason=spam_type_message)
 
     @staticmethod
     def _check_user_spam(user_messages: List[Message]) -> SpamType:
