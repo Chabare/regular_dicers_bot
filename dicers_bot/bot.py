@@ -112,7 +112,7 @@ class Bot:
         else:
             if chat_id == self.state.get("main_id", ""):
                 until_date = timedelta(hours=2)
-                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date)
+                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date, reason="Tried to register a new main chat")
             else:
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text="You can't register as the main chat, since there already is one.")
@@ -129,7 +129,7 @@ class Bot:
 
         return user
 
-    def restrict_user(self, chat_id: str, user: User, until_date: timedelta, **kwargs):
+    def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, **kwargs):
         timestamp: int = (datetime.now() + until_date).timestamp()
         try:
             result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
@@ -147,20 +147,18 @@ class Bot:
             self.logger.error(e)
             result = False
 
-        try:
-            user.muted = result
-        except KeyError:
-            self.logger.warning("User {} was not in chat {}".format(user, chat_id))
-            self.chats.get(chat_id).add_user(user)
-
         return result
 
     def unmute_user(self, chat_id: str, user: User):
-        self.restrict_user(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True)
+        if self.set_user_restriction(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True):
+            user.muted = False
+        # We'd need to parse the exception before assigning user.muted differently
 
-    def mute_user(self, chat_id: str, user: User, until_date: timedelta):
-        if not user.muted:
-            self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False)
+    def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None):
+        self.log.info(f"Reason for muting: {reason}")
+        if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_message=False):
+            user.muted = True
+            # We'd need to parse the exception before assigning user.muted differently
 
     def remind_users(self, update: Update = None) -> bool:
         if update:
@@ -189,8 +187,7 @@ class Bot:
         if attends:
             chat.current_event.add_attendee(user)
             self.calendar.create()
-            if user.muted:
-                self.unmute_user(chat.id, user)
+            self.unmute_user(chat.id, user)
         else:
             chat.current_event.add_absentee(user)
             try:
@@ -284,7 +281,7 @@ class Bot:
 
                 if spam_type_message:
                     self.logger.warning(spam_type_message)
-                    self.mute_user(chat.id, user, timeout)
+                    self.mute_user(chat.id, user, timeout, reason=spam_type_message)
 
     @staticmethod
     def _check_user_spam(user_messages: List[Message], spam_config: Dict[str, int]) -> SpamType:
