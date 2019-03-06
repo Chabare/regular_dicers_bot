@@ -260,7 +260,7 @@ class Bot:
         if chat:
             chat.reset()
 
-        self.save_state()
+            self.save_state()
 
     def reset_all(self, chat_id: str):
         self.logger.debug("Attempting to reset all chats")
