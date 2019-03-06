@@ -250,13 +250,25 @@ class Bot:
 
         return bool(result)
 
-    def reset(self):
-        self.logger.debug("Attempting reset")
+    def reset(self, chat_id: str):
+        self.logger.debug(f"Attempting to reset {chat_id}")
 
-        for chat in self.chats.values():
+        chat = self.chats.get(chat_id)
+        if chat:
             chat.reset()
 
-        self.save_state()
+            self.save_state()
+
+    def reset_all(self, chat_id: str):
+        self.logger.debug("Attempting to reset all chats")
+
+        if chat_id != self.state.get("main_id"):
+            self.updater.bot.send_message(chat_id=chat_id, text="Fuck you")
+        else:
+            for chat in self.chats.values():
+                chat.reset()
+
+            self.save_state()
 
     def check_for_spam(self, chat_messages: Dict[Chat, Iterable[Message]]):
         for chat, messages in chat_messages.items():
