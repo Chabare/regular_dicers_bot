@@ -127,7 +127,7 @@ class Bot:
 
         return user
 
-    def restrict_user(self, chat_id: str, user: User, until_date: timedelta, **kwargs):
+    def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, **kwargs):
         timestamp: int = (datetime.now() + until_date).timestamp()
         try:
             result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
@@ -148,13 +148,13 @@ class Bot:
         return result
 
     def unmute_user(self, chat_id: str, user: User):
-        if self.restrict_user(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True):
+        if self.set_user_restriction(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True):
             user.muted = False
         # We'd need to parse the exception before assigning user.muted differently
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None):
         self.log.info(f"Reason for muting: {reason}")
-        if self.restrict_user(chat_id, user, until_date=until_date, can_send_message=False):
+        if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_message=False):
             user.muted = True
             # We'd need to parse the exception before assigning user.muted differently
 
