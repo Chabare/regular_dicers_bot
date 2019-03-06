@@ -54,3 +54,13 @@ docker-compose up -d
 # Tail the logs
 docker-compose logs -f
 ```
+
+# Generate documentation
+```bash
+pdoc --html dicers_bot
+```
+
+## View
+```bash
+{browser} html/dicers_bot/index.html
+```
