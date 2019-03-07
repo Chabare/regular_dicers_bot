@@ -1,0 +1,7 @@
+{
+    "default": true,
+    "line-length": {
+        "line_length": 100,
+        "headers": false
+    }
+}

@@ -36,10 +36,18 @@ jobs:
     steps:
       - run: curl -L "http://update-bot.openalcolholics.group/?key=$UPDATE_KEY"
 
+  markdown_lint:
+    docker:
+      - image: 06kellyjac/markdownlint-cli:0.13.0-alpine
+    steps:
+      - checkout
+      - run: markdownlint README.md
+
 workflows:
   version: 2
   build_and_deploy:
     jobs:
+      - markdown_lint
       - run
       - build:
           requires:
