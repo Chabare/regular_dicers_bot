@@ -28,7 +28,7 @@ Put it in the `secrets.json` file (key: `token`).
 
 #### Google calendar
 
-_TODO_ Wait for https://github.com/OpenAlcoholics/regular_dicers_bot/issues/25 to document this.
+_TODO_ Wait for [Issue #25](#25) to document this.
 
 #### Sentry
 
