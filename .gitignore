@@ -8,3 +8,6 @@ credentials.json
 state.json
 
 __pycache__/
+
+# Documentation (pdoc)
+html

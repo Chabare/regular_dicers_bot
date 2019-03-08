@@ -5,8 +5,8 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    image: openalcoholics/regular_dicers_bot
     volumes:
-      - "./data/users.json:/usr/src/app/users.json"
-      - "./data/credentials.json:/usr/src/app/credentials.json"
-      - "./data/secrets.json:/usr/src/app/credentials.json"
+      - "./credentials.json:/usr/src/app/credentials.json"
+      - "./secrets.json:/usr/src/app/credentials.json"
+      - "./state.json:/usr/src/app/state.json"
+

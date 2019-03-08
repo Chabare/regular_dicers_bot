@@ -43,12 +43,22 @@ jobs:
       - checkout
       - run: markdownlint README.md
 
+  pdoc:
+    docker:
+      - image: python:3.7-slim
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+      - run: python setup.py install
+      - run: pdoc --html dicers_bot
+
 workflows:
   version: 2
   build_and_deploy:
     jobs:
       - markdown_lint
       - run
+      - pdoc
       - build:
           requires:
             - run
