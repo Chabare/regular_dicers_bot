@@ -1,5 +1,4 @@
-regular_dicers_bot
-===
+# regular_dicers_bot
 
 (Semi-related to CockBot) Telegram bot to remind people to drink cocktails on a regular basis
 
@@ -12,38 +11,44 @@ regular_dicers_bot
            |___/
 ```
 
-# Configuration
+## Configuration
+
 Create the `secrets.json` file:
 
 `mv secrets.json.example secrets.json`
 
-## Required
+### Required
 
-### API Token
+#### API Token
+
 Get your API from [Botfather](https://web.telegram.org/#/im?p=@BotFather).
 Put it in the `secrets.json` file (key: `token`).
 
-## Optional
+### Optional
 
-### Google calendar
+#### Google calendar
+
 _TODO_ Wait for https://github.com/OpenAlcoholics/regular_dicers_bot/issues/25 to document this.
 
-### Sentry
-If you want to enable sentry, get your token from `https://sentry.io/settings/{{your organization}}/projects/{{your project}}/keys/`.
+#### Sentry
+
+If you want to enable sentry, get your token from
+`https://sentry.io/settings/{{your organization}}/projects/{{your project}}/keys/`.
 Put your sentry_dsn in `secrets.json` file (key: `sentry_dsn`)
 
-## Telegram
+### Telegram
 
-### Commands
+#### Commands
+
 You can copy and paste the contents from `commands.md` to botfather to register the commands.
 
-### Group privacy
+#### Group privacy
+
 This settings should be disabled if you want the spam detection to work.
 
+## Installation
 
-# Installation
-
-## Virtualenv
+### Virtualenv
 
 ```bash
 git clone git@github.com:OpenAlcoholics/regular_dicers_bot.git
@@ -53,22 +58,22 @@ pip install -r requirements.txt
 python -O -B
 ```
 
-## docker-compose
+### docker-compose
 
 ```bash
 docker-compose build
 docker-compose up -d
-# Tail the logs
+## Tail the logs
 docker-compose logs -f
 ```
 
-# Generate documentation
+## Generate documentation
 
 ```bash
 pdoc --html dicers_bot
 ```
 
-## View
+### View
 
 ```bash
 {browser} html/dicers_bot/index.html
