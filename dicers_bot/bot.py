@@ -259,7 +259,7 @@ class Bot:
 
             self.save_state()
 
-    def reset_all(self, chat_id: str):
+    def reset_all(self, update: Update):
         self.logger.debug("Attempting to reset all chats")
 
         if chat_id != self.state.get("main_id"):
