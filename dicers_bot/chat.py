@@ -309,5 +309,7 @@ class Chat:
             self.close_current_event()
             self.unpin_message()
             self.current_keyboard = Keyboard.NONE
+            return True
         except Exception:
             self.logger.error(f"Could not reset current state for chat {self.id}", exc_info=True)
+            return False
