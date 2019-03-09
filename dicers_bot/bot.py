@@ -166,6 +166,7 @@ class Bot:
             user.muted = True
             # We'd need to parse the exception before assigning user.muted differently
 
+    # noinspection PyUnusedLocal
     @admin
     def remind_users(self, update: Update = None) -> bool:
         # Check that all chat keyboards have been set correctly
