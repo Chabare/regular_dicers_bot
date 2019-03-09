@@ -166,13 +166,8 @@ class Bot:
             user.muted = True
             # We'd need to parse the exception before assigning user.muted differently
 
+    @admin
     def remind_users(self, update: Update = None) -> bool:
-        if update:
-            chat_id = update.message.chat_id
-            if chat_id != self.state["main_id"]:
-                self.updater.bot.send_message(chat_id=update.message.chat_id, text="Fuck you")
-                return False
-
         # Check that all chat keyboards have been set correctly
         return all([bool(chat.show_attend_keyboard()) for chat in self.chats.values()])
 
