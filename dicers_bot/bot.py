@@ -13,6 +13,7 @@ from telegram import User as TUser
 
 from dicers_bot.chat import Chat, User, Keyboard
 from dicers_bot.config import Config
+from dicers_bot.decorators import admin
 from .calendar import Calendar
 from .logger import create_logger
 
@@ -259,6 +260,7 @@ class Bot:
 
             self.save_state()
 
+    @admin
     def reset_all(self, update: Update):
         self.logger.debug("Attempting to reset all chats")
 
