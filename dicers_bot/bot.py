@@ -106,15 +106,20 @@ class Bot:
         self.logger.info("Register main")
         chat_id = update.message.chat_id
         if not self.state.get("main_id", ""):
+            self.logger.debug("main_id is not present")
             _ = self.register(update, False)
             self.state["main_id"] = chat_id
             self.save_state()
             self.updater.bot.send_message(chat_id=chat_id, text="You have been registered as the main chat.")
         else:
+            self.logger.debug("main_id is present")
             if chat_id == self.state.get("main_id", ""):
+                self.logger.debug("User tries to register a main_chat despite of this chat already being the main chat")
                 until_date = timedelta(hours=2)
-                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date, reason="Tried to register a new main chat")
+                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date,
+                               reason="Tried to register a new main chat")
             else:
+                self.logger.debug("User tries to register a main_chat despite of there being an existing one")
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text="You can't register as the main chat, since there already is one.")
 
@@ -156,7 +161,7 @@ class Bot:
         # We'd need to parse the exception before assigning user.muted differently
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None):
-        self.log.info(f"Reason for muting: {reason}")
+        self.logger.info(f"Reason for muting: {reason}")
         if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_message=False):
             user.muted = True
             # We'd need to parse the exception before assigning user.muted differently
@@ -264,13 +269,19 @@ class Bot:
     def reset_all(self, update: Update):
         self.logger.debug("Attempting to reset all chats")
 
-        if chat_id != self.state.get("main_id"):
-            self.updater.bot.send_message(chat_id=chat_id, text="Fuck you")
-        else:
-            for chat in self.chats.values():
-                chat.reset()
+        success = {}
+        for chat in self.chats.values():
+            success[chat.id] = chat.reset()
 
-            self.save_state()
+        self.save_state()
+        if all(value for _, value in success.items()):
+            message = "Reset successfully completed."
+        else:
+            message = "Reset failed for the following chats:\n{}".format(
+                [chat_id for chat_id, suc in success.items() if not suc]
+            )
+        self.updater.bot.send_message(chat_id=update.message.chat_id, text=message,
+                                      disable_notification=True)
 
     def check_for_spam(self, chat_messages: Dict[Chat, Iterable[Message]]):
         for chat, messages in chat_messages.items():
