@@ -150,13 +150,13 @@ class Bot:
         return result
 
     def unmute_user(self, chat_id: str, user: User):
-        if self.set_user_restriction(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True):
+        if self.set_user_restriction(chat_id, user, until_date=timedelta(seconds=0), can_send_messages=True):
             user.muted = False
         # We'd need to parse the exception before assigning user.muted differently
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None):
         self.logger.info(f"Reason for muting: {reason}")
-        if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_message=False):
+        if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_messages=False):
             user.muted = True
             # We'd need to parse the exception before assigning user.muted differently
 
