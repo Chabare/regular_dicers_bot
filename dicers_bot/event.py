@@ -41,7 +41,8 @@ class Event:
         self.logger.info("Serialize event")
         serialized = {
             "timestamp": self.timestamp.strftime(self.date_format),
-            "attendees": [attendee.serialize() for attendee in self.attendees]
+            "attendees": [attendee.serialize() for attendee in self.attendees],
+            "absentees": [absentee.serialize() for absentee in self.absentees]
         }
         self.logger.info("Serialized event: {}".format(serialized))
         return serialized
@@ -54,6 +55,7 @@ class Event:
         event = Event()
         event.timestamp = datetime.strptime(json_object["timestamp"], event.date_format)
         event.attendees = set([User.deserialize(attendee) for attendee in json_object["attendees"]])
+        event.absentees = set([User.deserialize(absentee) for absentee in json_object["absentees"]])
 
         return event
 
