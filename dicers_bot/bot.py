@@ -134,7 +134,7 @@ class Bot:
         try:
             result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
                                                            **kwargs)
-            if not kwargs.get("can_send_message", False):
+            if not kwargs.get("can_send_messages", False):
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text=f"{user.name} has been restricted for {str(until_date)}.")
         except TelegramError as e:
