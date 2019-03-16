@@ -53,9 +53,9 @@ class Event:
             return None
 
         event = Event()
-        event.timestamp = datetime.strptime(json_object["timestamp"], event.date_format)
-        event.attendees = set([User.deserialize(attendee) for attendee in json_object["attendees"]])
-        event.absentees = set([User.deserialize(absentee) for absentee in json_object["absentees"]])
+        event.timestamp = datetime.strptime(json_object.get("timestamp"), event.date_format)
+        event.attendees = set([User.deserialize(attendee) for attendee in json_object.get("attendees")])
+        event.absentees = set([User.deserialize(absentee) for absentee in json_object.get("absentees")])
 
         return event
 
