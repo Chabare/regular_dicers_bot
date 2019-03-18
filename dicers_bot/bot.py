@@ -259,10 +259,10 @@ class Bot:
 
             self.save_state()
 
-    def reset_all(self, chat_id: str):
+    def reset_all(self, chat_id: str = None):
         self.logger.debug("Attempting to reset all chats")
 
-        if chat_id != self.state.get("main_id"):
+        if chat_id and chat_id != self.state.get("main_id"):
             self.updater.bot.send_message(chat_id=chat_id, text="Fuck you")
         else:
             for chat in self.chats.values():
