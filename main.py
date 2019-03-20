@@ -26,10 +26,10 @@ def run_scheduler(bot: Bot):
 
     logger.info("Set schedule")
 
-    schedule.every().monday.at(additional_reset_time).do(bot.reset)
+    schedule.every().monday.at(additional_reset_time).do(bot.reset_all)
     schedule.every().monday.at(attend_time).do(bot.show_attend_keyboards)
     schedule.every().monday.at(dice_time).do(bot.show_dice_keyboards)
-    schedule.every().tuesday.at(reset_time).do(bot.reset)
+    schedule.every().tuesday.at(reset_time).do(bot.reset_all)
 
     logger.info("Run schedule")
     while True:
