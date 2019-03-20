@@ -33,8 +33,11 @@ def run_scheduler(bot: Bot):
 
     logger.info("Run schedule")
     while True:
-        schedule.run_pending()
-        time.sleep(5)
+        try:
+            schedule.run_pending()
+            time.sleep(5)
+        except Exception as e:
+            logger.error(e)
 
 
 def handle_telegram_error(error: TelegramError):
