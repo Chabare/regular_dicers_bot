@@ -370,3 +370,12 @@ class Bot:
     def show_attend_keyboards(self):
         for _, chat in self.chats.items():
             chat.show_attend_keyboard()
+
+    def show_users(self, chat_id: str) -> Optional[Message]:
+        chat = self.chats.get(chat_id)
+        if not chat:
+            return None
+
+        message = "\n".join([str(user) for user in chat.users])
+
+        return self.updater.bot.send_message(chat_id=chat_id, text=message)
