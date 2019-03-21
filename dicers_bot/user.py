@@ -33,7 +33,15 @@ class User:
         return self.name.__hash__()
 
     def __str__(self) -> str:
-        return "{} ({}{})".format(self.name, self.roll, "+1" if self.jumbo else "")
+        """
+        <Name | Roll (jumbo) | muted>
+        """
+        roll = str(self.roll) if self.roll != -1 else "no roll"
+        jumbo = " (+1)" if self.jumbo else ""
+        muted = "muted" if self.muted else "not muted"
+
+        roll += jumbo
+        return f"<{' | '.join([self.name, roll, muted])}>"
 
     @classmethod
     def from_tuser(cls, chat_user: TUser):
