@@ -378,4 +378,9 @@ class Bot:
 
         message = "\n".join([str(user) for user in chat.users])
 
-        return self.updater.bot.send_message(chat_id=chat_id, text=message)
+        if message:
+            return self.updater.bot.send_message(chat_id=chat_id, text=message)
+        else:
+            self.logger.info("No users to show.")
+
+        return None
