@@ -36,7 +36,7 @@ class User:
         """
         <Name | Roll (jumbo) | muted>
         """
-        roll = f"{self.roll}" + " (+1)" if self.jumbo else ""
+        roll = str(self.roll) + " (+1)" if self.jumbo else ""
         muted = "muted" if self.muted else "not muted"
 
         return f"<{' | '.join([self.name, roll, muted])}>"
