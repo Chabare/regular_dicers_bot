@@ -10,4 +10,5 @@ reset_all - Reset all keyboards and the current event for all chats (admin comma
 status - Returns the chat id ([{id}])
 version - Returns the SHA1 of the current commit
 server_time - Time on the server (debugging purposes)
+users - Shows every user in the chat who has participated in the chat at some time (format: <Name | Roll (jumbo) | muted>)
 ```

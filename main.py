@@ -26,15 +26,18 @@ def run_scheduler(bot: Bot):
 
     logger.info("Set schedule")
 
-    schedule.every().monday.at(additional_reset_time).do(bot.reset)
+    schedule.every().monday.at(additional_reset_time).do(bot.reset_all)
     schedule.every().monday.at(attend_time).do(bot.show_attend_keyboards)
     schedule.every().monday.at(dice_time).do(bot.show_dice_keyboards)
-    schedule.every().tuesday.at(reset_time).do(bot.reset)
+    schedule.every().tuesday.at(reset_time).do(bot.reset_all)
 
     logger.info("Run schedule")
     while True:
-        schedule.run_pending()
-        time.sleep(5)
+        try:
+            schedule.run_pending()
+            time.sleep(5)
+        except Exception as e:
+            logger.error(e)
 
 
 def handle_telegram_error(error: TelegramError):
@@ -54,6 +57,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("show_dice", lambda _, update: bot.show_dice(update.message.chat_id)))
     dispatcher.add_handler(CommandHandler("reset", lambda _, update: bot.reset(update.message.chat_id)))
     dispatcher.add_handler(CommandHandler("reset_all", lambda _, update: bot.reset_all(update)))
+    dispatcher.add_handler(CommandHandler("users", lambda _, update: bot.show_users(update.message.chat_id)))
     dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
                                                                                      text="[{}]".format(
                                                                                          update.message.chat_id))))

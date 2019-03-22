@@ -140,7 +140,7 @@ class Bot:
         try:
             result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
                                                            **kwargs)
-            if not kwargs.get("can_send_message", False):
+            if not kwargs.get("can_send_messages", False):
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text=f"{user.name} has been restricted for {str(until_date)}.")
         except TelegramError as e:
@@ -156,13 +156,13 @@ class Bot:
         return result
 
     def unmute_user(self, chat_id: str, user: User):
-        if self.set_user_restriction(chat_id, user, until_date=timedelta(seconds=0), can_send_message=True):
+        if self.set_user_restriction(chat_id, user, until_date=timedelta(seconds=0), can_send_messages=True):
             user.muted = False
         # We'd need to parse the exception before assigning user.muted differently
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None):
         self.logger.info(f"Reason for muting: {reason}")
-        if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_message=False):
+        if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_messages=False):
             user.muted = True
             # We'd need to parse the exception before assigning user.muted differently
 
@@ -382,3 +382,17 @@ class Bot:
     def show_attend_keyboards(self):
         for _, chat in self.chats.items():
             chat.show_attend_keyboard()
+
+    def show_users(self, chat_id: str) -> Optional[Message]:
+        chat = self.chats.get(chat_id)
+        if not chat:
+            return None
+
+        message = "\n".join([str(user) for user in chat.users])
+
+        if message:
+            return self.updater.bot.send_message(chat_id=chat_id, text=message)
+        else:
+            self.logger.info("No users to show.")
+
+        return None

@@ -225,6 +225,7 @@ class Chat:
 
         if attendees:
             self.logger.info("price message has attendees")
+            attendees = sorted(attendees, key=lambda user: user.name.lower())
             message += ", ".join(
                 ["{} ({}{})".format(attendee.name, attendee.roll, "+1" if attendee.jumbo else "") for attendee in
                  attendees])
