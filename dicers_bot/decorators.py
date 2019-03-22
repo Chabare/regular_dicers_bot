@@ -33,7 +33,7 @@ def admin(func):
             update = None
 
         if not update or getattr(update, "message", None):
-            if update.message.chat_id == admin_key or not update:
+            if not update or update.message.chat_id == admin_key:
                 return func(*args, **kwargs)
             else:
                 raise PermissionError("You're not authorized to perform this action")
