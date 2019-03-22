@@ -63,7 +63,7 @@ class Chat:
         chat.pinned_message_id = json_object["pinned_message_id"]
         chat.current_event = Event.deserialize(json_object["current_event"])
         chat.events = [Event.deserialize(event_json_object) for event_json_object in json_object["events"]]
-        chat.users = set([User.deserialize(user_json_object) for user_json_object in json_object.get("users", [])])
+        chat.users = {User.deserialize(user_json_object) for user_json_object in json_object.get("users", [])}
 
         return chat
 
