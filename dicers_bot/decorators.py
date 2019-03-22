@@ -29,7 +29,7 @@ def admin(func):
 
         try:
             update = kwargs.get("update") or args[1]
-        except KeyError:
+        except IndexError:
             update = None
 
         if not update or getattr(update, "message", None):
