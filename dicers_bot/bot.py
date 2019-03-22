@@ -252,14 +252,17 @@ class Bot:
 
         return bool(result)
 
-    def reset(self, chat_id: str):
+    def reset(self, chat_id: str) -> bool:
         self.logger.debug(f"Attempting to reset {chat_id}")
+        result = False
 
         chat = self.chats.get(chat_id)
         if chat:
-            chat.reset()
+            result = chat.reset()
 
             self.save_state()
+
+        return result
 
     @admin
     def reset_all(self, update: Update):

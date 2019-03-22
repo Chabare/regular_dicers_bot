@@ -303,7 +303,7 @@ class Chat:
 
         return messages
 
-    def reset(self):
+    def reset(self) -> bool:
         # noinspection PyBroadException
         try:
             self.close_current_event()
