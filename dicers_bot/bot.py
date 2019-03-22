@@ -13,6 +13,7 @@ from telegram import User as TUser
 
 from dicers_bot.chat import Chat, User, Keyboard
 from dicers_bot.config import Config
+from dicers_bot.decorators import admin
 from .calendar import Calendar
 from .logger import create_logger
 
@@ -105,15 +106,20 @@ class Bot:
         self.logger.info("Register main")
         chat_id = update.message.chat_id
         if not self.state.get("main_id", ""):
+            self.logger.debug("main_id is not present")
             _ = self.register(update, False)
             self.state["main_id"] = chat_id
             self.save_state()
             self.updater.bot.send_message(chat_id=chat_id, text="You have been registered as the main chat.")
         else:
+            self.logger.debug("main_id is present")
             if chat_id == self.state.get("main_id", ""):
+                self.logger.debug("User tries to register a main_chat despite of this chat already being the main chat")
                 until_date = timedelta(hours=2)
-                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date, reason="Tried to register a new main chat")
+                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date,
+                               reason="Tried to register a new main chat")
             else:
+                self.logger.debug("User tries to register a main_chat despite of there being an existing one")
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text="You can't register as the main chat, since there already is one.")
 
@@ -160,13 +166,9 @@ class Bot:
             user.muted = True
             # We'd need to parse the exception before assigning user.muted differently
 
+    # noinspection PyUnusedLocal
+    @admin
     def remind_users(self, update: Update = None) -> bool:
-        if update:
-            chat_id = update.message.chat_id
-            if chat_id != self.state["main_id"]:
-                self.updater.bot.send_message(chat_id=update.message.chat_id, text="Fuck you")
-                return False
-
         # Check that all chat keyboards have been set correctly
         return all([bool(chat.show_attend_keyboard()) for chat in self.chats.values()])
 
@@ -250,25 +252,35 @@ class Bot:
 
         return bool(result)
 
-    def reset(self, chat_id: str):
+    def reset(self, chat_id: str) -> bool:
         self.logger.debug(f"Attempting to reset {chat_id}")
+        result = False
 
         chat = self.chats.get(chat_id)
         if chat:
-            chat.reset()
+            result = chat.reset()
 
             self.save_state()
 
-    def reset_all(self, chat_id: str = None):
+        return result
+
+    @admin
+    def reset_all(self, update: Update):
         self.logger.debug("Attempting to reset all chats")
 
-        if chat_id and chat_id != self.state.get("main_id"):
-            self.updater.bot.send_message(chat_id=chat_id, text="Fuck you")
-        else:
-            for chat in self.chats.values():
-                chat.reset()
+        success = {}
+        for chat in self.chats.values():
+            success[chat.id] = chat.reset()
 
-            self.save_state()
+        self.save_state()
+        if all(value for _, value in success.items()):
+            message = "Reset successfully completed."
+        else:
+            message = "Reset failed for the following chats:\n{}".format(
+                [chat_id for chat_id, suc in success.items() if not suc]
+            )
+        self.updater.bot.send_message(chat_id=update.message.chat_id, text=message,
+                                      disable_notification=True)
 
     def check_for_spam(self, chat_messages: Dict[Chat, Iterable[Message]]):
         for chat, messages in chat_messages.items():

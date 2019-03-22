@@ -56,7 +56,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_chat(update)))
     dispatcher.add_handler(CommandHandler("show_dice", lambda _, update: bot.show_dice(update.message.chat_id)))
     dispatcher.add_handler(CommandHandler("reset", lambda _, update: bot.reset(update.message.chat_id)))
-    dispatcher.add_handler(CommandHandler("reset_all", lambda _, update: bot.reset_all(update.message.chat_id)))
+    dispatcher.add_handler(CommandHandler("reset_all", lambda _, update: bot.reset_all(update)))
     dispatcher.add_handler(CommandHandler("users", lambda _, update: bot.show_users(update.message.chat_id)))
     dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
                                                                                      text="[{}]".format(
