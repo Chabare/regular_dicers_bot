@@ -12,9 +12,11 @@ def admin(func):
     - `main_id` is `None`
 
     Examples:
+    @admin
     def require_admin(self, *, update: Update):
         [...]
 
+    @admin
     def require_admin_2(self, update: Update):
         [...]
 
