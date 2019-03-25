@@ -144,7 +144,7 @@ class Bot:
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text=f"{user.name} has been restricted for {str(until_date)}.")
         except TelegramError as e:
-            if e.message == "Can't demote chat creator" and not kwargs.get("can_send_message", False):
+            if e.message == "Can't demote chat creator" and not kwargs.get("can_send_messages", False):
                 message = "Sadly, user {} couldn't be restricted due to: `{}`. Shame on {}".format(user.name,
                                                                                                    e.message,
                                                                                                    user.name)
