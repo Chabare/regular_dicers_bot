@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from itertools import groupby, zip_longest
 from threading import Timer
-from typing import Any, List, Optional, Dict, Iterable
+from typing import Any, List, Optional, Dict, Iterable, Set
 
 import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
@@ -216,7 +216,7 @@ class Bot:
         chat: Chat = self.chats[callback.message.chat.id]
         chat.set_dice_callback(callback)
 
-        attendees: List[User] = chat.current_event.attendees
+        attendees: Set[User] = chat.current_event.attendees
 
         if user.id not in [user.id for user in attendees]:
             self.logger.info("User {} is not in attendees list".format(user.name))
