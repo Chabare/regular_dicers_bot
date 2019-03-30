@@ -1,12 +1,11 @@
-import sys
-
 import os
+import sys
 import threading
 from datetime import datetime
 
 import sentry_sdk
 from telegram import TelegramError
-from telegram.ext import CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters, Job
+from telegram.ext import CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters
 
 from dicers_bot import Bot, create_logger
 

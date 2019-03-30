@@ -1,6 +1,5 @@
-from datetime import timedelta
-import functools
 import inspect
+from datetime import timedelta
 
 from telegram import Update
 from telegram.ext import CallbackContext

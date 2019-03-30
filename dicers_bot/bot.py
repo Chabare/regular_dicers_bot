@@ -9,13 +9,11 @@ from typing import Any, List, Optional, Dict, Iterable, Set
 
 import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
-from telegram import User as TUser
-from telegram.error import BadRequest
-from telegram.ext import CallbackContext, Job
+from telegram.ext import CallbackContext
 
 from dicers_bot.chat import Chat, User, Keyboard
 from dicers_bot.config import Config
-from dicers_bot.decorators import admin, Command
+from dicers_bot.decorators import Command
 from .calendar import Calendar
 from .logger import create_logger
 
