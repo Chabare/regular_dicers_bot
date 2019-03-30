@@ -221,12 +221,7 @@ class Bot:
         chat = context.chat_data["chat"]
         self.logger.debug(f"Attempting to reset {chat.id}")
 
-        result = chat.reset()
-
-        message = "Success" if result else "Failed to reset chat"
-        update.message.reply_text(message, notification=False)
-
-        return result
+        chat.reset()
 
     @Command(main_admin=True)
     def reset_all(self, update: Update, context: CallbackContext):
