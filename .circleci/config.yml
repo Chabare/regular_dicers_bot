@@ -21,7 +21,7 @@ jobs:
       - setup_remote_docker
       - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
 
-      - run: sed -i -e "s/{{VERSION}}/$CIRCLE_SHA1/" main.py
+      - run: sed -i -e "s/{{VERSION}}/$CIRCLE_SHA1/" dicers_bot/bot.py
 
       # build the application image
       - run: docker build -t openalcoholics/regular_dicers_bot:latest-$CIRCLE_BRANCH .

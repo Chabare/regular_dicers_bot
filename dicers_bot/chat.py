@@ -32,6 +32,7 @@ class Chat:
         self.start_event()
         self.logger.info("Initialize empty user set")
         self.users: Set[User] = set()
+        self.title = None
 
     def get_user_by_id(self, _id: int) -> Optional[User]:
         result = next(filter(lambda user: user.id == _id, self.users), None)
@@ -40,12 +41,17 @@ class Chat:
 
     def serialize(self):
         self.logger.info("Serialize chat")
+        serialized_event = None
+        if self.current_event:
+            serialized_event = self.current_event.serialize()
+
         serialized = {
             "id": self.id,
-            "current_event": self.current_event.serialize() if self.current_event else None,
+            "current_event": serialized_event,
             "pinned_message_id": self.pinned_message_id,
             "events": [event.serialize() for event in self.events],
-            "users": [user.serialize() for user in self.users]
+            "users": [user.serialize() for user in self.users],
+            "title": self.title
         }
         self.logger.info("Serialized chat: {}".format(serialized))
 
@@ -60,10 +66,11 @@ class Chat:
             json_object["id"],
             bot
         )
-        chat.pinned_message_id = json_object["pinned_message_id"]
-        chat.current_event = Event.deserialize(json_object["current_event"])
-        chat.events = [Event.deserialize(event_json_object) for event_json_object in json_object["events"]]
+        chat.pinned_message_id = json_object.get("pinned_message_id")
+        chat.current_event = Event.deserialize(json_object.get("current_event"))
+        chat.events = [Event.deserialize(event_json_object) for event_json_object in json_object.get("events", [])]
         chat.users = {User.deserialize(user_json_object) for user_json_object in json_object.get("users", [])}
+        chat.title = json_object.get("title", None)
 
         return chat
 
@@ -154,12 +161,16 @@ class Chat:
 
     def update_attend_message(self):
         self.logger.info("Update attend message")
-        if not self.attend_callback or not self.current_event:
-            self.logger.info("Failed to update attend message: attend_callback: {} | self.current_event".format(
-                self.attend_callback,
-                self.current_event.serialize()
-            ))
-            raise Exception  # TODO
+        if not self.attend_callback:
+            self.logger.info("Failed to update attend message (no attend_callback)")
+            return
+
+        if not self.current_event:
+            self.logger.debug("No current event, emptying old attend message.")
+            self.attend_callback.edit_message_reply_markup(reply_markup=None)
+            self.attend_callback.answer()
+            self.attend_callback = None
+            return
 
         message = self._build_attend_message()
         self.logger.info("Edit message (%s)", message)
@@ -197,15 +208,19 @@ class Chat:
         self.logger.info("Successfully built the attend message: %s", message)
         return message
 
-    def update_dice_message(self):
+    def update_dice_message(self) -> Dict:
         self.logger.info("Update price message")
-        if not self.dice_callback or not self.current_event:
-            self.logger.info("Failed to update price message: dice_callback: {} | self.current_event".format(
-                self.dice_callback,
-                self.current_event.serialize()
-            ))
+        if not self.dice_callback:
+            self.logger.info("Failed to update price message: no dice_callback")
             self.logger.info("Raise exception")
-            raise Exception  # TODO
+            return {}
+
+        if not self.current_event:
+            self.logger.debug("No current event, emptying old attend message.")
+            self.dice_callback.edit_message_reply_markup(reply_markup=None)
+            self.dice_callback.answer()
+            self.dice_callback = None
+            return {}
 
         message = self._build_dice_message()
         self.logger.info("Edit message (%s)", message)
@@ -218,7 +233,8 @@ class Chat:
             self.logger.debug("edit_message_text failed", exc_info=True)
 
         self.logger.info("Answer dice callback")
-        self.dice_callback.answer()
+
+        return self.dice_callback.answer()
 
     def _build_dice_message(self):
         self.logger.info("Build price message")
@@ -268,6 +284,7 @@ class Chat:
 
         message = self._build_attend_message()
         result = self._send_message(text=message, reply_markup=self.get_attend_keyboard())
+
         if result:
             self.current_keyboard = Keyboard.ATTEND
             self.logger.info("Successfully shown attend: {}".format(result))
@@ -277,6 +294,30 @@ class Chat:
             self.logger.info("Failed to send attend message: {}".format(result))
 
         return result
+
+    def administrators(self) -> List[User]:
+        """
+        Lists all administrators in this chat.
+        Skips administrators who are not in `self.users`.
+        This doesn't work in private chats, since there are no admins in a private chat
+
+        :return: Administrators in this chat List[User]
+        """
+        administrators: List[User] = []
+
+        try:
+            chat_administrators = self.bot.get_chat_administrators(chat_id=self.id)
+        except TelegramError as e:
+            return []
+
+        for admin in chat_administrators:
+            try:
+                user = next(filter(lambda user: user.id == admin.user.id, self.users))
+                administrators.append(user)
+            except StopIteration:
+                pass
+
+        return administrators
 
     def set_attend_callback(self, callback: CallbackQuery):
         self.logger.info("Set attend callback")
@@ -306,13 +347,15 @@ class Chat:
 
         return messages
 
-    def reset(self) -> bool:
-        # noinspection PyBroadException
-        try:
-            self.close_current_event()
-            self.unpin_message()
-            self.current_keyboard = Keyboard.NONE
-            return True
-        except Exception:
-            self.logger.error(f"Could not reset current state for chat {self.id}", exc_info=True)
-            return False
+    def reset(self):
+        self.close_current_event()
+        self.update_attend_message()
+        self.update_dice_message()
+        self.unpin_message()
+        self.current_keyboard = Keyboard.NONE
+        for user in self.users:
+            user.roll = -1
+            user.jumbo = False
+
+    def __repr__(self):
+        return f"<{self.id} | {self.title}>"

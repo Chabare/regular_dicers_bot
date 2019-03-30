@@ -2,42 +2,34 @@ import sys
 
 import os
 import threading
-import time
 from datetime import datetime
 
-import schedule
 import sentry_sdk
-from pytz import timezone
 from telegram import TelegramError
-from telegram.ext import CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters
+from telegram.ext import CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters, Job
 
 from dicers_bot import Bot, create_logger
 
 
-def run_scheduler(bot: Bot):
-    logger = create_logger("run_scheduler")
-    logger.debug("Start run_scheduler")
-    default_timezone = timezone("Europe/Berlin")
+def schedule_jobs(bot: Bot, updater: Updater):
+    logger = create_logger("schedule jobs")
+    logger.debug("Start")
     today: datetime = datetime.today()
-    additional_reset_time: str = default_timezone.localize(today.replace(hour=13, minute=30)).strftime("%H:%M")
-    attend_time: str = default_timezone.localize(today.replace(hour=14, minute=0)).strftime("%H:%M")
-    dice_time: str = default_timezone.localize(today.replace(hour=20, minute=30)).strftime("%H:%M")
-    reset_time: str = default_timezone.localize(today.replace(hour=0, minute=0)).strftime("%H:%M")
+    additional_reset_time = today.replace(hour=13, minute=30)
+    attend_time = today.replace(hour=14, minute=0)
+    dice_time = today.replace(hour=20, minute=30)
+    reset_time = today.replace(hour=0, minute=0)
 
     logger.info("Set schedule")
 
-    schedule.every().monday.at(additional_reset_time).do(bot.reset_all)
-    schedule.every().monday.at(attend_time).do(bot.show_attend_keyboards)
-    schedule.every().monday.at(dice_time).do(bot.show_dice_keyboards)
-    schedule.every().tuesday.at(reset_time).do(bot.reset_all)
+    monday = (0,)
+    tuesday = (1,)
+    updater.job_queue.run_daily(callback=lambda _: bot.reset_all(None, None), time=additional_reset_time, days=monday)
+    updater.job_queue.run_daily(callback=lambda _: bot.remind_users(None, None), time=attend_time, days=monday)
+    updater.job_queue.run_daily(callback=lambda _: bot.show_dice_keyboards(None, None), time=dice_time, days=monday)
+    updater.job_queue.run_daily(callback=lambda _: bot.reset_all(None, None), time=reset_time, days=tuesday)
 
-    logger.info("Run schedule")
-    while True:
-        try:
-            schedule.run_pending()
-            time.sleep(5)
-        except Exception as e:
-            logger.error(e)
+    logger.info("Updated job_queue")
 
 
 def handle_telegram_error(error: TelegramError):
@@ -45,58 +37,67 @@ def handle_telegram_error(error: TelegramError):
 
 
 def start(bot_token: str):
-    updater = Updater(token=bot_token)
+    logger = create_logger("start")
+    logger.debug("Start bot")
+
+    updater = Updater(token=bot_token, use_context=True)
     bot = Bot(updater)
 
     dispatcher = updater.dispatcher
-    dispatcher.add_handler(CommandHandler("register", lambda _, update: bot.register(update)))
-    dispatcher.add_handler(CommandHandler("unregister", lambda _, update: bot.unregister(update)))
-    dispatcher.add_handler(CommandHandler("register_main", lambda _, update: bot.register_main(update)))
-    dispatcher.add_handler(CommandHandler("remind_all", lambda _, update: bot.remind_users(update)))
-    dispatcher.add_handler(CommandHandler("remind_me", lambda _, update: bot.remind_chat(update)))
-    dispatcher.add_handler(CommandHandler("show_dice", lambda _, update: bot.show_dice(update.message.chat_id)))
-    dispatcher.add_handler(CommandHandler("reset", lambda _, update: bot.reset(update.message.chat_id)))
-    dispatcher.add_handler(CommandHandler("reset_all", lambda _, update: bot.reset_all(update)))
-    dispatcher.add_handler(CommandHandler("users", lambda _, update: bot.show_users(update.message.chat_id)))
-    dispatcher.add_handler(CommandHandler("status", lambda b, update: b.send_message(chat_id=update.message.chat_id,
-                                                                                     text="[{}]".format(
-                                                                                         update.message.chat_id))))
-    dispatcher.add_handler(CommandHandler("server_time", lambda b, u: b.send_message(chat_id=u.message.chat_id,
-                                                                                     text=datetime.now().strftime(
-                                                                                         "%d-%m-%Y %H-%M-%S"))))
-    dispatcher.add_handler(CommandHandler("version", lambda b, u: b.send_message(chat_id=u.message.chat_id,
-                                                                                 text="{{VERSION}}")))
+
+    logger.debug("Register command handlers")
+    # CommandHandler
+    dispatcher.add_handler(CommandHandler("register_main", bot.register_main))
+    dispatcher.add_handler(CommandHandler("remind_me", bot.remind_chat))
+    dispatcher.add_handler(CommandHandler("show_dice", bot.show_dice))
+    dispatcher.add_handler(CommandHandler("users", bot.show_users))
+    # chat_admin
+    dispatcher.add_handler(CommandHandler("reset", bot.reset))
+
+    # main_admin
+    dispatcher.add_handler(CommandHandler("remind_all", bot.remind_users))
+    dispatcher.add_handler(CommandHandler("reset_all", bot.reset_all))
+    dispatcher.add_handler(CommandHandler("unregister_main", bot.unregister_main))
+
+    # Debugging
+    dispatcher.add_handler(CommandHandler("status", bot.status))
+    dispatcher.add_handler(CommandHandler("server_time", bot.server_time))
+    dispatcher.add_handler(CommandHandler("version", bot.version))
+
+    # CallbackQueryHandler
+    dispatcher.add_handler(CallbackQueryHandler(bot.handle_attend_callback, pattern="attend_(.*)"))
+    dispatcher.add_handler(CallbackQueryHandler(bot.handle_dice_callback, pattern="dice_(.*)"))
+
+    # MessageHandler
     dispatcher.add_handler(
-        CallbackQueryHandler(lambda _, u: bot.handle_attend_callback(u), pattern="attend_(.*)"))
-    dispatcher.add_handler(
-        CallbackQueryHandler(lambda _, u: bot.handle_dice_callback(u), pattern="dice_(.*)"))
-    dispatcher.add_handler(
-        MessageHandler(Filters.text, lambda _, update: bot.handle_message(update)))
+        MessageHandler(Filters.text, bot.handle_message))
+    dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, bot.new_member))
+
+    # ErrorHandler
     dispatcher.add_error_handler(
         lambda _bot, _update, error: handle_telegram_error(error)
     )
 
     state_file = "state.json"
+    logger.debug(f"Read state from {state_file}")
     if os.path.exists(state_file):
         with open(state_file) as file:
             try:
                 state = json.load(file)
             except json.decoder.JSONDecodeError as e:
-                create_logger("state.json").warning(f"Unable to load previous state: {e}")
+                logger.warning(f"Unable to load previous state: {e}")
                 state = {"main_id": None}
 
         bot.set_state(state)
 
-    create_logger("thread").info("Start scheduler thread")
-    t = threading.Thread(target=run_scheduler, daemon=True, args=[bot])
-    t.start()
+    schedule_jobs(bot, updater)
 
     try:
         if sys.argv[1] == "--testrun":
-            print("Scheduling exit in 5 seconds")
+            logger.info("Scheduling exit in 5 seconds")
 
             def _exit():
-                print("Exiting")
+                logger.info("Exiting")
                 updater.stop()
                 updater.is_idle = False
 
@@ -106,7 +107,7 @@ def start(bot_token: str):
     except IndexError:
         pass
 
-    print("Running")
+    logger.info("Running")
     updater.start_polling()
     updater.idle()
 
@@ -127,6 +128,7 @@ if __name__ == "__main__":
     # noinspection PyBroadException
     try:
         start(token)
-    except Exception:
+    except Exception as e:
         sentry_sdk.capture_exception()
+        create_logger("__main__").error(e)
         sys.exit(1)

@@ -5,15 +5,17 @@ from datetime import datetime, timedelta
 from enum import Enum
 from itertools import groupby, zip_longest
 from threading import Timer
-from typing import Any, List, Optional, Dict, Iterable
+from typing import Any, List, Optional, Dict, Iterable, Set
 
 import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram import User as TUser
+from telegram.error import BadRequest
+from telegram.ext import CallbackContext, Job
 
 from dicers_bot.chat import Chat, User, Keyboard
 from dicers_bot.config import Config
-from dicers_bot.decorators import admin
+from dicers_bot.decorators import admin, Command
 from .calendar import Calendar
 from .logger import create_logger
 
@@ -42,14 +44,16 @@ class Bot:
         self.logger = create_logger("regular_dicers_bot")
         self.config = Config("config.json")
 
-    def show_dice(self, chat_id: str):
-        chat = self.chats[chat_id]
+    @Command()
+    def show_dice(self, update: Update, context: CallbackContext):
+        chat = context.chat_data["chat"]
         return chat.show_dice()
 
-    def show_dice_keyboards(self):
+    @Command(main_admin=True)
+    def show_dice_keyboards(self, update: Update, context: CallbackContext):
         for chat_id in self.chats.keys():
             self.hide_attend(chat_id)
-            self.show_dice(chat_id)
+            self.show_dice(update, context)
 
     def hide_attend(self, chat_id):
         chat: Chat = self.chats[chat_id]
@@ -60,83 +64,39 @@ class Bot:
         with open("state.json", "w+") as f:
             json.dump(self.state, f)
 
-    def register(self, update: Update, send_response: bool = True) -> bool:
-        self.logger.info("Register")
-        chat_id = update.message.chat_id
-        self.logger.info("Register: {}".format(chat_id))
-
-        if chat_id in self.chats.keys():
-            self.logger.info("Chat already registered")
-            if send_response:
-                self.updater.bot.send_message(chat_id=chat_id, text="Why would you register twice, dumbass!")
-            return False
-
-        self.logger.info("Chat is being registered")
-        try:
-            self.chats[chat_id] = Chat(chat_id, self.updater.bot)
-            self.save_state()
-        except Exception as e:
-            sentry_sdk.capture_exception()
-            self.logger.error(e)
-
-        if send_response:
-            self.logger.info("Chat successfully registered")
-            self.updater.bot.send_message(chat_id=chat_id, text="You have been registered.")
-
-        return True
-
-    def unregister(self, update: Update) -> bool:
-        chat_id = update.message.chat_id
-        try:
-            successful_removal = self.chats.pop(chat_id)
-            if self.state.get("main_id", "") == chat_id:
-                self.state["main_id"] = None
-                self.save_state()
-        except KeyError:
-            successful_removal = False
-
-        if not successful_removal:
-            self.updater.bot.send_message(chat_id=chat_id, text="You weren't registered in the first place!")
-        else:
-            self.updater.bot.send_message(chat_id=chat_id, text="You have been unregistered.")
-
-        return successful_removal
-
-    def register_main(self, update: Update):
+    @Command()
+    def register_main(self, update: Update, context: CallbackContext):
         self.logger.info("Register main")
-        chat_id = update.message.chat_id
+        chat = context.chat_data["chat"]
+        user = context.user_data["user"]
+
         if not self.state.get("main_id", ""):
             self.logger.debug("main_id is not present")
-            _ = self.register(update, False)
-            self.state["main_id"] = chat_id
-            self.save_state()
-            self.updater.bot.send_message(chat_id=chat_id, text="You have been registered as the main chat.")
+            self.state["main_id"] = chat.id
+            message = "You have been registered as the main chat."
         else:
             self.logger.debug("main_id is present")
-            if chat_id == self.state.get("main_id", ""):
+            if chat.id == self.state.get("main_id", ""):
                 self.logger.debug("User tries to register a main_chat despite of this chat already being the main chat")
                 until_date = timedelta(hours=2)
-                self.mute_user(chat_id, self._get_user_from_update(update), until_date=until_date,
-                               reason="Tried to register a new main chat")
+                self.mute_user(chat.id, user, until_date=until_date,
+                               reason="Tried to register this chat (which is the main chat) as the main chat")
+                message = "You are the main chat already."
             else:
                 self.logger.debug("User tries to register a main_chat despite of there being an existing one")
-                self.updater.bot.send_message(chat_id=chat_id,
-                                              text="You can't register as the main chat, since there already is one.")
+                message = "You can't register as the main chat, since there already is one."
 
-        self.save_state()
+        update.message.reply_text(text=message)
 
-    def _get_user_from_update(self, update: Update) -> Optional[User]:
-        user = None
-        chat = self.chats.get(update.message.chat_id)
-        if chat and update.message:
-            if not chat.get_user_by_id(update.message.from_user.id):
-                user = User.from_tuser(update.message.from_user)
-                chat.add_user(user)
+    @Command(main_admin=True)
+    def unregister_main(self, update: Update, context: CallbackContext):
+        self.logger.info("Unregistering main chat")
+        self.state["main_id"] = None
 
-        return user
+        update.message.reply_text(text="You've been unregistered as the main chat")
 
     def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, **kwargs):
-        timestamp: int = (datetime.now() + until_date).timestamp()
+        timestamp: int = int((datetime.now() + until_date).timestamp())
         try:
             result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
                                                            **kwargs)
@@ -156,9 +116,11 @@ class Bot:
         return result
 
     def unmute_user(self, chat_id: str, user: User):
-        if self.set_user_restriction(chat_id, user, until_date=timedelta(seconds=0), can_send_messages=True):
-            user.muted = False
-        # We'd need to parse the exception before assigning user.muted differently
+        try:
+            if self.updater.bot.promote_chat_member(chat_id, user.id, can_post_messages=True):
+                user.muted = False
+        except TelegramError:
+            self.logger.error("Error while promoting chat member", exc_info=True)
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None):
         self.logger.info(f"Reason for muting: {reason}")
@@ -167,23 +129,24 @@ class Bot:
             # We'd need to parse the exception before assigning user.muted differently
 
     # noinspection PyUnusedLocal
-    @admin
-    def remind_users(self, update: Update = None) -> bool:
+    @Command(main_admin=True)
+    def remind_users(self, update: Update, context: CallbackContext) -> bool:
         # Check that all chat keyboards have been set correctly
         return all([bool(chat.show_attend_keyboard()) for chat in self.chats.values()])
 
-    def handle_attend_callback(self, update: Update):
+    @Command()
+    def handle_attend_callback(self, update: Update, context: CallbackContext):
         callback: CallbackQuery = update.callback_query
-        chat_user: TUser = callback.from_user
-        user = User.from_tuser(chat_user)
-        chat = self.chats[callback.message.chat.id]
-        chat.add_user(user)
+        user = context.user_data["user"]
+        chat: Chat = context.chat_data["chat"]
+
         chat.set_attend_callback(callback)
 
         def _mute_user_if_absent():
-            chat_id = chat.id
-            if user in self.chats[chat_id].current_event.absentees:
-                self.mute_user(chat_id, user, timedelta(hours=1))
+            if user in chat.current_event.absentees:
+                self.mute_user(chat.id, user, timedelta(hours=1))
+
+        attendees = chat.current_event.attendees
 
         attends = callback.data == "attend_True"
         if attends:
@@ -191,6 +154,13 @@ class Bot:
             self.calendar.create()
             self.unmute_user(chat.id, user)
         else:
+            if user in attendees and user.roll != -1:
+                self.logger.warning(f"User {user.name} with roll tried to unattend.")
+                message = f"You ({user.name}) can't unattend after adding your roll."
+                self.send_message(chat_id=chat.id, text=message)
+
+                return False
+
             chat.current_event.add_absentee(user)
             try:
                 chat.current_event.remove_attendee(user)
@@ -203,25 +173,28 @@ class Bot:
                 chat.update_dice_message()
 
         try:
-            self.save_state()
             chat.update_attend_message()
         except Exception as e:
             sentry_sdk.capture_exception()
             self.logger.exception(e)
 
-    def handle_dice_callback(self, update: Update):
+    @Command()
+    def handle_dice_callback(self, update: Update, context: CallbackContext) -> Dict:
         callback: CallbackQuery = update.callback_query
-        chat_user: TUser = callback.from_user
-        user = User.from_tuser(chat_user)
-        chat: Chat = self.chats[callback.message.chat.id]
+        user = context.user_data["user"]
+        chat: Chat = context.chat_data["chat"]
+
         chat.set_dice_callback(callback)
 
-        attendees: List[User] = chat.current_event.attendees
+        attendees: Set[User] = chat.current_event.attendees
 
         if user.id not in [user.id for user in attendees]:
             self.logger.info("User {} is not in attendees list".format(user.name))
+            message = f"You ({user.name}) are not attending this event, you can't roll a dice yet."
+            self.send_message(chat_id=chat.id, text=message)
             callback.answer()
-            return False
+            return {}
+
         attendee = [attendee for attendee in attendees if attendee.id == user.id][0]
 
         data = re.match("dice_(.*)", callback.data).groups()[0]
@@ -230,57 +203,49 @@ class Bot:
         else:
             attendee.set_jumbo(data == "+1")
 
-        self.save_state()
-        chat.update_dice_message()
+        return chat.update_dice_message()
 
-    def remind_chat(self, update: Update) -> bool:
-        self.logger.info("Remind chat")
-        try:
-            chat_id = update.message.chat_id
-            self.logger.info("Remind chat: {}".format(chat_id))
-        except AttributeError as e:
-            self.logger.info("Attribute error for `update.message.chat_id`: {}".format(e))
-            return False
-
-        if not (chat_id in self.chats.keys()):
-            self.logger.error("Chat id not known. Chat has to be registered before it can be reminded")
-            return False
+    @Command()
+    def remind_chat(self, update: Update, context: CallbackContext) -> bool:
+        chat_id = context.chat_data["chat"].id
+        self.logger.info(f"Remind chat: {chat_id}")
 
         self.logger.info("Show attend keyboard for: {}".format(chat_id))
+
         result = self.chats[chat_id].show_attend_keyboard()
+
         self.logger.info("Result if showing attend keyboard for {}: {}".format(chat_id, result))
 
         return bool(result)
 
-    def reset(self, chat_id: str) -> bool:
-        self.logger.debug(f"Attempting to reset {chat_id}")
-        result = False
+    @Command(chat_admin=True)
+    def reset(self, update: Update, context: CallbackContext) -> bool:
+        chat = context.chat_data["chat"]
+        self.logger.debug(f"Attempting to reset {chat.id}")
 
-        chat = self.chats.get(chat_id)
-        if chat:
-            result = chat.reset()
+        result = chat.reset()
 
-            self.save_state()
+        message = "Success" if result else "Failed to reset chat"
+        update.message.reply_text(message, notification=False)
 
         return result
 
-    @admin
-    def reset_all(self, update: Update):
+    @Command(main_admin=True)
+    def reset_all(self, update: Update, context: CallbackContext):
         self.logger.debug("Attempting to reset all chats")
 
         success = {}
         for chat in self.chats.values():
             success[chat.id] = chat.reset()
 
-        self.save_state()
         if all(value for _, value in success.items()):
-            message = "Reset successfully completed."
+            message = "Success"
         else:
-            message = "Reset failed for the following chats:\n{}".format(
+            message = "Failure for the following chats:\n{}".format(
                 [chat_id for chat_id, suc in success.items() if not suc]
             )
-        self.updater.bot.send_message(chat_id=update.message.chat_id, text=message,
-                                      disable_notification=True)
+
+        update.message.reply_text(text=message, disable_notification=True)
 
     def check_for_spam(self, chat_messages: Dict[Chat, Iterable[Message]]):
         for chat, messages in chat_messages.items():
@@ -353,16 +318,10 @@ class Bot:
 
         return SpamType.NONE
 
-    def handle_message(self, update: Update):
+    @Command()
+    def handle_message(self, update: Update, context: CallbackContext):
         self.logger.info("Handle message: {}".format(update.message.text))
-        if update.message.chat_id not in self.chats.keys():
-            self.logger.error("Chat {} hasn't been registered.".format(update.message.chat_id))
-            self.updater.bot.send_message(chat_id=update.message.chat_id,
-                                          text="Please register before performing an action (/register).")
-            return
-        chat: Chat = self.chats.get(update.message.chat_id)
-        chat.add_user(User.from_tuser(update.message.from_user))
-        chat.add_message(update.message)
+        chat: Chat = context.chat_data["chat"]
 
         try:
             self.check_for_spam({chat: chat.messages()})
@@ -379,14 +338,13 @@ class Bot:
 
         return True
 
-    def show_attend_keyboards(self):
-        for _, chat in self.chats.items():
-            chat.show_attend_keyboard()
+    def send_message(self, *args, **kwargs) -> Message:
+        return self.updater.bot.send_message(*args, **kwargs)
 
-    def show_users(self, chat_id: str) -> Optional[Message]:
+    @Command()
+    def show_users(self, update: Update, context: CallbackContext) -> Optional[Message]:
+        chat_id = context.chat_data["chat"].id
         chat = self.chats.get(chat_id)
-        if not chat:
-            return None
 
         message = "\n".join([str(user) for user in chat.users])
 
@@ -396,3 +354,23 @@ class Bot:
             self.logger.info("No users to show.")
 
         return None
+
+    @Command()
+    def new_member(self, update: Update, context: CallbackContext):
+        pass
+
+    @Command()
+    def status(self, update: Update, context: CallbackContext):
+        try:
+            update.message.reply_text(text=f"{context.chat_data['chat']}")
+        except Exception as e:
+            pass
+
+    @Command()
+    def version(self, update: Update, context: CallbackContext):
+        update.message.reply_text("{{VERSION}}")
+
+    @Command()
+    def server_time(self, update: Update, context: CallbackContext):
+        time = datetime.now().strftime("%d-%m-%Y %H-%M-%S")
+        update.message.reply_text(time)
