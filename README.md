@@ -1,6 +1,8 @@
 # regular_dicers_bot
 
-(Semi-related to CockBot) Telegram bot to remind people to drink cocktails on a regular basis
+The shitpost of telegram bots.
+
+Reminds people to drink cocktails on a regular basis.
 
 ```text
                        _                  _ _                     _           _
