@@ -247,7 +247,13 @@ class Chat:
         self.logger.info("Result of sending message: {}".format(result))
         return result
 
-    def show_dice(self) -> Message:
+    def show_dice(self) -> Optional[Message]:
+        if not self.current_event:
+            self.logger.info("No `current_event`, abort `show_dice`.")
+            self._send_message(text="There is no event right now, unable to provide a dice.")
+
+            return None
+
         self.logger.info("Showing dice")
         result = self._send_message(text=self._build_dice_message(), reply_markup=self.get_dice_keyboard())
         if result:
