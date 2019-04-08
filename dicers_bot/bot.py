@@ -390,9 +390,7 @@ class Bot:
 
         message = "\n".join([str(user) for user in chat.users])
 
-        if message:
-            return self.updater.bot.send_message(chat_id=chat_id, text=message)
-        else:
-            self.logger.info("No users to show.")
+        if not message:
+            message = "No active users. Users need to write a message in the chat to be recognized (not just a command)"
 
-        return None
+        return self.updater.bot.send_message(chat_id=chat_id, text=message)
