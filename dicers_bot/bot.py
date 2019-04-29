@@ -191,6 +191,12 @@ class Bot:
             sentry_sdk.capture_exception()
             self.logger.exception(e)
 
+        user_has_voted_already = (user in chat.current_event.attendees) or (user in chat.current_event.absentees)
+        if not user_has_voted_already:
+            vote_count: int = len(chat.current_event.attendees) + len(chat.current_event.absentees)
+            if len(chat.users) == vote_count and vote_count > 1:
+                self.send_message(chat_id=chat.id, text="Alle haben abgestimmt.")
+
     @Command()
     def handle_dice_callback(self, update: Update, context: CallbackContext) -> Dict:
         callback: CallbackQuery = update.callback_query
