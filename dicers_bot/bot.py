@@ -324,6 +324,21 @@ class Bot:
         else:
             self.logger.info("Handled message")
 
+    @Command()
+    def handle_left_chat_member(self, update: Update, context: CallbackContext) -> None:
+        chat: Chat = context.chat_data["chat"]
+
+        if update.message.left_chat_member.id == self.updater.bot.id:
+            self.logger.info(f"Bot was removed from {chat}.\nRemoving all chat data.")
+
+            if chat.id in self.chats:
+                self.logger.info(f"Deleting chat ({chat}) from state.")
+                del self.chats[chat.id]
+            else:
+                self.logger.warning(f"{chat} was not found in `self.chats` despite just being kicked.")
+        else:
+            update.message.reply_text("Bye bye birdie")
+
     def set_state(self, state: Dict[str, Any]):
         self.state = state
         self.state["main_id"] = self.state.get("main_id", "")
