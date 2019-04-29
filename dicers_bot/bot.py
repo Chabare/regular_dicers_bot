@@ -62,6 +62,14 @@ class Bot:
         with open("state.json", "w+") as f:
             json.dump(self.state, f)
 
+    @Command(chat_admin=True)
+    def delete_chat(self, update: Update, context: CallbackContext):
+        chat: Chat = context.chat_data["chat"]
+
+        if chat.id in self.chats:
+            self.logger.info(f"Deleting chat ({chat}) from state.")
+            del self.chats[chat.id]
+
     @Command()
     def register_main(self, update: Update, context: CallbackContext):
         self.logger.info("Register main")
@@ -326,17 +334,7 @@ class Bot:
 
     @Command()
     def handle_left_chat_member(self, update: Update, context: CallbackContext) -> None:
-        chat: Chat = context.chat_data["chat"]
-
-        if update.message.left_chat_member.id == self.updater.bot.id:
-            self.logger.info(f"Bot was removed from {chat}.\nRemoving all chat data.")
-
-            if chat.id in self.chats:
-                self.logger.info(f"Deleting chat ({chat}) from state.")
-                del self.chats[chat.id]
-            else:
-                self.logger.warning(f"{chat} was not found in `self.chats` despite just being kicked.")
-        else:
+        if update.message.left_chat_member.id != self.updater.bot.id:
             update.message.reply_text("Bye bye birdie")
 
     def set_state(self, state: Dict[str, Any]):
