@@ -301,7 +301,7 @@ class Chat:
 
         return result
 
-    def administrators(self) -> List[User]:
+    def administrators(self) -> Set[User]:
         """
         Lists all administrators in this chat.
         Skips administrators who are not in `self.users`.
@@ -309,17 +309,17 @@ class Chat:
 
         :return: Administrators in this chat List[User]
         """
-        administrators: List[User] = []
+        administrators: Set[User] = set()
 
         try:
             chat_administrators = self.bot.get_chat_administrators(chat_id=self.id)
-        except TelegramError as e:
-            return []
+        except TelegramError:
+            return administrators
 
         for admin in chat_administrators:
             try:
                 user = next(filter(lambda user: user.id == admin.user.id, self.users))
-                administrators.append(user)
+                administrators.add(user)
             except StopIteration:
                 pass
 
