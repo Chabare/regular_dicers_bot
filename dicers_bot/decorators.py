@@ -65,6 +65,9 @@ class Command:
             if not chat:
                 chat = self._add_chat(clazz, update, context)
 
+            if not clazz.chats.get(chat.id):
+                clazz.chats[chat.id] = chat
+
             user = context.user_data.get("user")
             if not user:
                 user = self._add_user(chat, update, context)

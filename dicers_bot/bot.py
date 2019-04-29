@@ -76,6 +76,7 @@ class Bot:
         if chat.id in self.chats:
             self.logger.info(f"Deleting chat ({chat}) from state.")
             del self.chats[chat.id]
+            del context.chat_data["chat"]
 
     @Command()
     def register_main(self, update: Update, context: CallbackContext):
@@ -363,15 +364,14 @@ class Bot:
 
     @Command()
     def show_users(self, update: Update, context: CallbackContext) -> Optional[Message]:
-        chat_id = context.chat_data["chat"].id
-        chat = self.chats.get(chat_id)
+        chat = context.chat_data["chat"]
 
         message = "\n".join([str(user) for user in chat.users])
 
         if not message:
             message = "No active users. Users need to write a message in the chat to be recognized (not just a command)"
 
-        return self.updater.bot.send_message(chat_id=chat_id, text=message)
+        return self.send_message(chat_id=chat.id, text=message)
 
     @Command()
     def new_member(self, update: Update, context: CallbackContext):
