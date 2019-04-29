@@ -217,7 +217,7 @@ class Bot:
         return bool(result)
 
     @Command(chat_admin=True)
-    def reset(self, update: Update, context: CallbackContext) -> bool:
+    def reset(self, update: Update, context: CallbackContext) -> None:
         chat = context.chat_data["chat"]
         self.logger.debug(f"Attempting to reset {chat.id}")
 
