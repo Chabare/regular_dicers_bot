@@ -358,7 +358,7 @@ class Bot:
 
         if not message:
             message = "No active users. Users need to write a message in the chat to be recognized (not just a command)"
-        
+
         return self.updater.bot.send_message(chat_id=chat_id, text=message)
 
     @Command()
