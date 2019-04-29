@@ -42,6 +42,10 @@ class Bot:
         self.logger = create_logger("regular_dicers_bot")
         self.config = Config("config.json")
 
+    def _show_dice(self, chat_id: str):
+        if chat_id in self.chats:
+            self.chats.get(chat_id).show_dice()
+
     @Command()
     def show_dice(self, update: Update, context: CallbackContext):
         chat = context.chat_data["chat"]
@@ -51,7 +55,10 @@ class Bot:
     def show_dice_keyboards(self, update: Update, context: CallbackContext):
         for chat_id in self.chats.keys():
             self.hide_attend(chat_id)
-            self.show_dice(update, context)
+            if context:
+                self.show_dice(update, context)
+            else:
+                self._show_dice(chat_id)
 
     def hide_attend(self, chat_id):
         chat: Chat = self.chats[chat_id]
@@ -246,7 +253,8 @@ class Bot:
                 [chat_id for chat_id, suc in success.items() if not suc]
             )
 
-        update.message.reply_text(text=message, disable_notification=True)
+        if update:
+            update.message.reply_text(text=message, disable_notification=True)
 
     def check_for_spam(self, chat_messages: Dict[Chat, Iterable[Message]]):
         for chat, messages in chat_messages.items():
