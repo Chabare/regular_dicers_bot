@@ -52,7 +52,7 @@ class Bot:
         return chat.show_dice()
 
     @Command(main_admin=True)
-    def show_dice_keyboards(self, update: Update, context: CallbackContext):
+    def show_dice_keyboards(self, update: Optional[Update], context: Optional[CallbackContext]):
         for chat_id in self.chats.keys():
             self.hide_attend(chat_id)
             if context:
@@ -143,7 +143,7 @@ class Bot:
 
     # noinspection PyUnusedLocal
     @Command(main_admin=True)
-    def remind_users(self, update: Update, context: CallbackContext) -> bool:
+    def remind_users(self, update: Optional[Update], context: Optional[CallbackContext]) -> bool:
         # Check that all chat keyboards have been set correctly
         return all([bool(chat.show_attend_keyboard()) for chat in self.chats.values()])
 
@@ -239,7 +239,7 @@ class Bot:
         chat.reset()
 
     @Command(main_admin=True)
-    def reset_all(self, update: Update, context: CallbackContext):
+    def reset_all(self, update: Optional[Update], context: Optional[CallbackContext]):
         self.logger.debug("Attempting to reset all chats")
 
         success = {}
