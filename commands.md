@@ -1,6 +1,7 @@
 ```
 register_main - Register the main chat (can create calendar events and is the admin chat)
 unregister_main - Unregisters this chat as the main chat (now every other chat has the possibility to become the main chat)
+delete_chat - Deletes all data associated with this chat (admin command)
 remind_me - Show the attendance keyboard
 remind_all - Show attendance keyboards for all known chats (admin command)
 show_dice - Show the dice keyboard
