@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Optional, Set, List, Dict, Any
 
 from telegram import Bot as TBot
+from telegram import Chat as TChat
 from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
 from telegram.error import BadRequest
 
@@ -16,6 +17,23 @@ class Keyboard(Enum):
     NONE = 0
     ATTEND = 1
     DICE = 2
+
+
+class ChatType(Enum):
+    UNDEFINED = ""
+    PRIVATE = TChat.PRIVATE
+    GROUP = TChat.GROUP
+    SUPERGROUP = TChat.SUPERGROUP
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, str):
+            if isinstance(other, ChatType):
+                return self.value == other.value
+            else:
+                return False
+
+
+        return self.value == other
 
 
 class Chat:
@@ -35,6 +53,7 @@ class Chat:
         self.logger.info("Initialize empty user set")
         self.users: Set[User] = set()
         self.title = None
+        self.type = ChatType.UNDEFINED
 
     def get_user_by_id(self, _id: int) -> Optional[User]:
         result = next(filter(lambda user: user.id == _id, self.users), None)
