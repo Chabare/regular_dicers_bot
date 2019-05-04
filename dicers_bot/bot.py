@@ -241,7 +241,11 @@ class Bot:
         chat = context.chat_data["chat"]
         self.logger.debug(f"Attempting to reset {chat.id}")
 
-        chat.reset()
+        try:
+            chat.reset()
+        except TelegramError:
+            self.logger.warning(f"Could not reset for chat {chat.id}", exc_info=True)
+            update.message.reply_text(chat_id=chat.id, text="Could not perform reset.")
 
     @Command(main_admin=True)
     def reset_all(self, update: Optional[Update], context: Optional[CallbackContext]):
@@ -249,7 +253,13 @@ class Bot:
 
         success = {}
         for chat in self.chats.values():
-            success[chat.id] = chat.reset()
+            try:
+                chat.reset()
+                success[chat.id] = True
+            except TelegramError:
+                success[chat.id] = False
+                self.logger.warning(f"Could not reset for chat {chat.id}", exc_info=True)
+                update.message.reply_text(chat_id=chat.id, text="Could not perform reset.")
 
         if all(value for _, value in success.items()):
             message = "Success"
