@@ -37,14 +37,14 @@ class Calendar:
             self.logger.warning("Calendar module is disabled. Reason: %s", str(e))
             self.service = None
 
-    def create(self):
+    def create(self) -> None:
         service = self.service
         if not service:
-            return
+            return None
 
         if datetime.today().weekday() != 0:
             print("Not monday ({})".format(datetime.today().weekday()))
-            return
+            return None
         self.fill_base_event()
 
         if self.last_event and self.event["start"]["dateTime"] == self.last_event["start"]["dateTime"]:
@@ -52,14 +52,14 @@ class Calendar:
                 self.event["start"]["dateTime"],
                 self.last_event["start"]["dateTime"])
             )
-            return
+            return None
 
         gevent = service.events().insert(calendarId="43httl0ouo48t260oqturfrs84@group.calendar.google.com",
                                          body=self.event).execute()
         self.last_event = self.event
         self.event = base_event
 
-        return gevent.get("htmlLink")
+        gevent.get("htmlLink")
 
     @staticmethod
     def _load_credentials(filename) -> client.Credentials:
@@ -78,20 +78,20 @@ class Calendar:
         return credentials
 
     @staticmethod
-    def _get_start_time():
+    def _get_start_time() -> datetime:
         today = datetime.today()
         start = today.replace(hour=21, minute=0, second=0, microsecond=0)
 
         return start
 
     @staticmethod
-    def _get_end_time():
+    def _get_end_time() -> datetime:
         today = datetime.today()
         end = today.replace(hour=23, minute=30, second=0, microsecond=0)
 
         return end
 
-    def fill_base_event(self):
+    def fill_base_event(self) -> None:
         date_format = "%Y-%m-%dT%H:%M:%S"
         self.event["start"]["dateTime"] = self._get_start_time().strftime(date_format)
         self.event["end"]["dateTime"] = self._get_end_time().strftime(date_format)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, Optional, Set
 
 from telegram import Message
@@ -23,13 +25,13 @@ class User:
     # def __getattr__(self, item):
     #     return getattr(self.internal, item)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, User):
             return False
 
         return other.id == self.id
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.name.__hash__()
 
     def __str__(self) -> str:
@@ -44,13 +46,13 @@ class User:
         return f"<{' | '.join([self.name, roll, muted])}>"
 
     @classmethod
-    def from_tuser(cls, chat_user: TUser):
+    def from_tuser(cls, chat_user: TUser) -> User:
         user = User(chat_user.first_name, chat_user.id, chat_user)
 
         return user
 
     @classmethod
-    def deserialize(cls, json: Dict[str, Any]):
+    def deserialize(cls, json: Dict[str, Any]) -> User:
         user = User(json.get("name"), json.get("id"))
         user.muted = json.get("muted", False)
         user.roll = int(json.get("roll", -1))
@@ -58,7 +60,7 @@ class User:
 
         return user
 
-    def serialize(self):
+    def serialize(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "roll": self.roll,

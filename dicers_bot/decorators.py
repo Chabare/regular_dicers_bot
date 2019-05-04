@@ -13,7 +13,7 @@ class Command:
         self.main_admin = main_admin
 
     @staticmethod
-    def _add_chat(clazz, update: Update, context: CallbackContext):
+    def _add_chat(clazz, update: Update, context: CallbackContext) -> dicers_bot.chat.Chat:
         chat = clazz.chats.get(update.effective_chat.id)
         if not chat:
             chat = dicers_bot.Chat(update.effective_chat.id, clazz.updater.bot)
@@ -27,7 +27,7 @@ class Command:
         return chat
 
     @staticmethod
-    def _add_user(chat, update: Update, context: CallbackContext):
+    def _add_user(chat, update: Update, context: CallbackContext) -> dicers_bot.user.User:
         filtered_users = [user for user in chat.users if update.effective_user.id == user.id]
         if filtered_users:
             user = filtered_users[0]

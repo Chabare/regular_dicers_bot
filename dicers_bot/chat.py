@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional, Set, List, Dict
+from typing import Optional, Set, List, Dict, Any
 
 from telegram import Bot as TBot
 from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
@@ -41,7 +41,7 @@ class Chat:
 
         return result
 
-    def serialize(self):
+    def serialize(self) -> Dict[str, Any]:
         self.logger.info("Serialize chat")
         serialized_event = None
         if self.current_event:
@@ -63,7 +63,7 @@ class Chat:
         self.users.add(user)
 
     @classmethod
-    def deserialize(cls, json_object: Dict, bot: TBot):
+    def deserialize(cls, json_object: Dict, bot: TBot) -> Chat:
         chat = Chat(
             json_object["id"],
             bot
@@ -94,11 +94,12 @@ class Chat:
             self.pinned_message_id = message_id
             self.logger.info("Successfully pinned message: {}".format(message_id))
             return True
+        else:
+            self.logger.info("Pinning message failed")
 
-        self.logger.info("Pinning message failed")
-        return False
+        return successful_pin
 
-    def unpin_message(self):
+    def unpin_message(self) -> bool:
         self.logger.info("Unpin message")
 
         successful_unpin = False
@@ -110,18 +111,18 @@ class Chat:
         if successful_unpin:
             self.logger.info("Successfully unpinned message")
             self.pinned_message_id = None
-            return True
+        else:
+            self.logger.info("Failed to unpin message")
 
-        self.logger.info("Failed to unpin message")
-        return False
+        return successful_unpin
 
-    def close_current_event(self):
+    def close_current_event(self) -> None:
         self.logger.info("Close current event")
         if self.current_event:
             self.events.append(self.current_event)
         self.current_event = None
 
-    def start_event(self, event: Optional[Event] = None):
+    def start_event(self, event: Optional[Event] = None) -> None:
         self.logger.info("Start event")
         if not event:
             self.logger.info("No event given, create one")
@@ -161,7 +162,7 @@ class Chat:
                 callback_data="dice_+1")
         ]])
 
-    def update_attend_message(self):
+    def update_attend_message(self) -> None:
         self.logger.info("Update attend message")
         if not self.attend_callback:
             self.logger.info("Failed to update attend message (no attend_callback)")
@@ -187,7 +188,7 @@ class Chat:
         self.logger.info("Answer attend callback")
         self.attend_callback.answer()
 
-    def _build_attend_message(self):
+    def _build_attend_message(self) -> str:
         self.logger.info("Build attend message for event: %s", self.current_event)
         message = "Wer ist dabei?" + "\nBisher: "
         attendees = self.current_event.attendees
@@ -210,19 +211,19 @@ class Chat:
         self.logger.info("Successfully built the attend message: %s", message)
         return message
 
-    def update_dice_message(self) -> Dict:
+    def update_dice_message(self) -> None:
         self.logger.info("Update price message")
         if not self.dice_callback:
             self.logger.info("Failed to update price message: no dice_callback")
             self.logger.info("Raise exception")
-            return {}
+            return None
 
         if not self.current_event:
             self.logger.debug("No current event, emptying old attend message.")
             self.dice_callback.edit_message_reply_markup(reply_markup=None)
             self.dice_callback.answer()
             self.dice_callback = None
-            return {}
+            return None
 
         message = self._build_dice_message()
         self.logger.info("Edit message (%s)", message)
@@ -236,9 +237,9 @@ class Chat:
 
         self.logger.info("Answer dice callback")
 
-        return self.dice_callback.answer()
+        self.dice_callback.answer()
 
-    def _build_dice_message(self):
+    def _build_dice_message(self) -> str:
         self.logger.info("Build price message")
         message = "Was hast du gewürfelt?\n"
         attendees = [attendee for attendee in self.current_event.attendees if attendee.roll != -1]
@@ -256,7 +257,7 @@ class Chat:
 
         return message
 
-    def _send_message(self, **kwargs):
+    def _send_message(self, **kwargs) -> Message:
         self.logger.info(
             "Send message with: {}".format(" | ".join(["{}: {}".format(key, val) for key, val in kwargs.items()]))
         )
@@ -327,26 +328,31 @@ class Chat:
 
         return administrators
 
-    def set_attend_callback(self, callback: CallbackQuery):
+    def set_attend_callback(self, callback: CallbackQuery) -> None:
         self.logger.info("Set attend callback")
         self.attend_callback = callback
 
-    def set_dice_callback(self, callback: CallbackQuery):
+    def set_dice_callback(self, callback: CallbackQuery) -> None:
         self.logger.info("Set dice callback")
         self.dice_callback = callback
 
-    def hide_attend(self):
+    def hide_attend(self) -> bool:
         self.logger.info("Hide attend keyboard")
+        result = True
+
         try:
             self.attend_callback.edit_message_text(text=self._build_attend_message())
             self.unpin_message()
         except TelegramError as e:
             self.logger.error(e)
+            result = False
 
-    def add_message(self, message: Message):
+        return result
+
+    def add_message(self, message: Message) -> None:
         user = self.get_user_by_id(message.from_user.id)
 
-        return user.messages.add(message)
+        user.messages.add(message)
 
     def messages(self) -> List[Message]:
         messages = []
@@ -355,7 +361,7 @@ class Chat:
 
         return messages
 
-    def reset(self):
+    def reset(self) -> None:
         self.close_current_event()
         self.update_attend_message()
         self.update_dice_message()
@@ -365,5 +371,5 @@ class Chat:
             user.roll = -1
             user.jumbo = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.id} | {self.title}>"
