@@ -42,10 +42,6 @@ class Bot:
         self.logger = create_logger("regular_dicers_bot")
         self.config = Config("config.json")
 
-    def _show_dice(self, chat_id: str):
-        if chat_id in self.chats:
-            self.chats.get(chat_id).show_dice()
-
     @Command()
     def show_dice(self, update: Update, context: CallbackContext):
         chat = context.chat_data["chat"]
@@ -57,8 +53,10 @@ class Bot:
             self.hide_attend(chat_id)
             if context:
                 self.show_dice(update, context)
+            elif chat_id in self.chats:
+                self.chats.get(chat_id).show_dice()
             else:
-                self._show_dice(chat_id)
+                self.logger.warning(f"Can't show keyboard for {chat_id}, `context` is `None` and `chat_id` is not in `self.chats`.")
 
     def hide_attend(self, chat_id):
         chat: Chat = self.chats[chat_id]
