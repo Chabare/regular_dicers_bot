@@ -262,7 +262,7 @@ class Bot:
             message = "Could not perform reset."
             result = False
 
-        update.message.reply_text(chat_id=chat.id, text=message)
+        update.message.reply_text(text=message)
 
         return result
 
@@ -282,7 +282,7 @@ class Bot:
                 message = "Could not perform reset."
 
             if update:
-                update.message.reply_text(chat_id=chat.id, text=message)
+                update.message.reply_text(text=message)
 
         result = True
         if all(value for _, value in success.items()):
