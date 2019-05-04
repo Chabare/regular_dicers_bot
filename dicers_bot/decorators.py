@@ -21,8 +21,8 @@ class Command:
 
         context.chat_data["chat"] = chat
 
-        if not chat.title:
-            chat.title = update.effective_chat.title
+        chat.title = update.effective_chat.title
+        chat.type = update.effective_chat.type
 
         return chat
 
@@ -65,6 +65,7 @@ class Command:
             chat = context.chat_data.get("chat")
             if not chat:
                 chat = self._add_chat(clazz, update, context)
+            chat.type = update.effective_chat.type
 
             if not clazz.chats.get(chat.id):
                 clazz.chats[chat.id] = chat
