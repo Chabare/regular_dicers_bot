@@ -89,9 +89,11 @@ class Command:
                 admins = chat.administrators()
                 if user in admins:
                     logger.debug("User is a chat admin and therefore allowed to perform this action, executing")
+                elif chat.type == dicers_bot.chat.ChatType.PRIVATE:
+                    logger.debug("Execute function due to coming from a private chat")
                 else:
                     logger.error("User isn't a chat_admin and is not allowed to perform this action.")
-                    exception = PermissionError(f"{user} is not allowed to execute this command.")
+                    exception = PermissionError()
 
             if update.message:
                 chat.add_message(update.message)  # Needs user in chat
