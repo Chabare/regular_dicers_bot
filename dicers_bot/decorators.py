@@ -40,6 +40,7 @@ class Command:
 
     def __call__(self, func):
         def wrapped_f(*args, **kwargs):
+            exception = None
             logger = dicers_bot.create_logger(f"command_{func.__name__}")
             logger.debug("Start")
 
@@ -81,7 +82,7 @@ class Command:
                     message = f"Chat {chat} is not allowed to perform this action."
                     logger.warning(message)
                     clazz.mute_user(chat_id=chat.id, user=user, until_date=timedelta(minutes=15), reason=message)
-                    raise PermissionError()
+                    exception = PermissionError()
 
             if self.chat_admin:
                 admins = chat.administrators()
@@ -89,13 +90,16 @@ class Command:
                     logger.debug("User is a chat admin and therefore allowed to perform this action, executing")
                 else:
                     logger.error("User isn't a chat_admin and is not allowed to perform this action.")
-                    raise PermissionError(f"{user} is not allowed to execute this command.")
+                    exception = PermissionError(f"{user} is not allowed to execute this command.")
 
             if update.message:
                 chat.add_message(update.message)  # Needs user in chat
 
             logger.debug(execution_message)
             try:
+                if exception:
+                    raise exception
+
                 result = func(*args, **kwargs)
                 logger.debug(finished_execution_message)
                 return result
