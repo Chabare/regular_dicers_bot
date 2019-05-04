@@ -50,6 +50,8 @@ This settings should be disabled if you want the spam detection to work.
 
 ## Installation
 
+This project needs python3.7
+
 ### Virtualenv
 
 ```bash

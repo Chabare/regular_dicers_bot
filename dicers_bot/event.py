@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-from typing import Set, Dict
+from typing import Set, Dict, Any, Optional
 
 from dicers_bot.chat import User
 from .logger import create_logger
@@ -15,17 +17,17 @@ class Event:
         self.absentees: Set = set()
         self.logger.info("Created event for {}".format(self.timestamp))
 
-    def add_absentee(self, user):
+    def add_absentee(self, user) -> None:
         self.logger.info("Add absentee {} to event".format(user))
 
-        return self.absentees.add(user)
+        self.absentees.add(user)
 
-    def remove_absentee(self, user):
+    def remove_absentee(self, user) -> None:
         self.logger.info("Remove absentee {} from event".format(user))
         self.absentees.remove(user)
         self.add_attendee(user)
 
-    def add_attendee(self, user: User):
+    def add_attendee(self, user: User) -> None:
         self.logger.info("Add {} to event".format(user))
         try:
             self.remove_absentee(user)
@@ -33,11 +35,11 @@ class Event:
             self.logger.info("User was not in absentees: {}".format(user))
         self.attendees.add(user)
 
-    def remove_attendee(self, user):
+    def remove_attendee(self, user) -> None:
         self.logger.info("Remove {} from event".format(user))
         self.attendees.remove(user)
 
-    def serialize(self) -> Dict:
+    def serialize(self) -> Dict[str, Any]:
         self.logger.info("Serialize event")
         serialized = {
             "timestamp": self.timestamp.strftime(self.date_format),
@@ -48,7 +50,7 @@ class Event:
         return serialized
 
     @classmethod
-    def deserialize(cls, json_object: Dict):
+    def deserialize(cls, json_object: Dict) -> Optional[Event]:
         if not json_object:
             return None
 
@@ -60,7 +62,7 @@ class Event:
         return event
 
     @staticmethod
-    def _next_monday():
+    def _next_monday() -> datetime:
         today = datetime.today()
         weekday = 0
 

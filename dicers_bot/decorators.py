@@ -1,41 +1,121 @@
-import functools
+import inspect
+from datetime import timedelta
+
+from telegram import Update
+from telegram.ext import CallbackContext
+
+import dicers_bot
 
 
-def admin(func):
-    """
-    The function needs to have a keyword parameter named `update` or have the update as the first parameter after self.
-    The admin key is determined by `self.state.get("main_id")`.
+class Command:
+    def __init__(self, chat_admin: bool = False, main_admin: bool = False):
+        self.chat_admin = chat_admin
+        self.main_admin = main_admin
 
-    The admin decorator executes the given function if:
-    - the `update` argument is `None`
-    - the chat_id from update (`update.message.chat_id`) matches the main chat id (`Bot.state["main_id"]`)
-    - `main_id` is `None`
+    @staticmethod
+    def _add_chat(clazz, update: Update, context: CallbackContext) -> dicers_bot.chat.Chat:
+        chat = clazz.chats.get(update.effective_chat.id)
+        if not chat:
+            chat = dicers_bot.Chat(update.effective_chat.id, clazz.updater.bot)
+            clazz.chats[chat.id] = chat
 
-    Examples:
-    @admin
-    def require_admin(self, *, update: Update):
-        [...]
+        context.chat_data["chat"] = chat
 
-    @admin
-    def require_admin_2(self, update: Update):
-        [...]
+        chat.title = update.effective_chat.title
+        chat.type = update.effective_chat.type
 
-    :param func: Func] -> Any
-    :return:
-    """
-    @functools.wraps(func)
-    def admin_wrapper(*args, **kwargs):
-        admin_key = args[0].state.get("main_id")
+        return chat
 
-        try:
-            update = kwargs.get("update") or args[1]
-        except IndexError:
-            update = None
+    @staticmethod
+    def _add_user(chat, update: Update, context: CallbackContext) -> dicers_bot.user.User:
+        filtered_users = [user for user in chat.users if update.effective_user.id == user.id]
+        if filtered_users:
+            user = filtered_users[0]
+        else:
+            user = dicers_bot.User.from_tuser(update.effective_user)
 
-        if not update or getattr(update, "message", None):
-            if not update or update.message.chat_id == admin_key:
-                return func(*args, **kwargs)
-            else:
-                raise PermissionError("You're not authorized to perform this action")
+        context.user_data["user"] = user
 
-    return admin_wrapper
+        return user
+
+    def __call__(self, func):
+        def wrapped_f(*args, **kwargs):
+            exception = None
+            logger = dicers_bot.create_logger(f"command_{func.__name__}")
+            logger.debug("Start")
+
+            signature = inspect.signature(func)
+            arguments = signature.bind(*args, **kwargs).arguments
+
+            clazz: dicers_bot.Bot = arguments.get("self")
+            update = arguments.get("update")
+            context = arguments.get("context")
+            execution_message = f"Executing {func.__name__}"
+            finished_execution_message = f"Finished executing {func.__name__}"
+
+            if not update:
+                logger.debug("Execute function due to coming directly from the bot.")
+
+                logger.debug(execution_message)
+                result = func(*args, **kwargs)
+                logger.debug(finished_execution_message)
+
+                return result
+
+            chat = context.chat_data.get("chat")
+            if not chat:
+                chat = self._add_chat(clazz, update, context)
+            chat.type = update.effective_chat.type
+
+            if not clazz.chats.get(chat.id):
+                clazz.chats[chat.id] = chat
+
+            user = context.user_data.get("user")
+            if not user:
+                user = self._add_user(chat, update, context)
+
+            chat.add_user(user)
+
+            if self.main_admin:
+                if chat.id == clazz.state.get("main_id"):
+                    logger.debug("Execute function due to coming from the main_chat")
+                else:
+                    message = f"Chat {chat} is not allowed to perform this action."
+                    logger.warning(message)
+                    clazz.mute_user(chat_id=chat.id, user=user, until_date=timedelta(minutes=15), reason=message)
+                    exception = PermissionError()
+
+            if self.chat_admin:
+                admins = chat.administrators()
+                if user in admins:
+                    logger.debug("User is a chat admin and therefore allowed to perform this action, executing")
+                elif chat.type == dicers_bot.chat.ChatType.PRIVATE:
+                    logger.debug("Execute function due to coming from a private chat")
+                else:
+                    logger.error("User isn't a chat_admin and is not allowed to perform this action.")
+                    exception = PermissionError()
+
+            if update.message:
+                chat.add_message(update.message)  # Needs user in chat
+
+            logger.debug(execution_message)
+            try:
+                if exception:
+                    raise exception
+
+                result = func(*args, **kwargs)
+                logger.debug(finished_execution_message)
+                return result
+            except PermissionError:
+                if update.message:
+                    update.message.reply_text("You're not allowed to perform this action.")
+            except Exception as e:
+                # Log for debugging purposes
+                logger.error(str(e), exc_info=True)
+
+                raise e
+            finally:
+                clazz.save_state()
+                logger.debug("End")
+
+        return wrapped_f
