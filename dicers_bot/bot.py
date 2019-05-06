@@ -335,6 +335,10 @@ class Bot:
         same_message_timeframe: int = spam_config.get("same_message_timeframe", 2)
         different_message_limit: int = spam_config.get("different_message_limit", 15)
         different_message_timeframe: int = spam_config.get("different_message_timeframe", 2)
+        check_timeframe: int = spam_config.get("check_timeframe", 60)
+
+        user_messages = [message for message in user_messages if
+                         ((datetime.now() - message.date).seconds * 60) <= check_timeframe]
 
         def is_consecutive(sorted_messages: Sequence[Optional[Message]]) -> bool:
             if None in sorted_messages:
