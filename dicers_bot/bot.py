@@ -108,14 +108,18 @@ class Bot:
 
         return update.message.reply_text(text="You've been unregistered as the main chat")
 
-    def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, **kwargs) -> bool:
+    def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, reason: str = None,
+                             **kwargs) -> bool:
         timestamp: int = int((datetime.now() + until_date).timestamp())
         try:
             result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
                                                            **kwargs)
             if not kwargs.get("can_send_messages", False):
+                message = f"{user.name} has been restricted for {str(until_date)}."
+                if reason:
+                    message += f"\nReason: {reason}"
                 self.updater.bot.send_message(chat_id=chat_id,
-                                              text=f"{user.name} has been restricted for {str(until_date)}.")
+                                              text=message)
         except TelegramError as e:
             if e.message == "Can't demote chat creator" and not kwargs.get("can_send_messages", False):
                 message = "Sadly, user {} couldn't be restricted due to: `{}`. Shame on {}".format(user.name,
@@ -143,7 +147,7 @@ class Bot:
     def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None) -> bool:
         result = False
         self.logger.info(f"Reason for muting: {reason}")
-        if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_messages=False):
+        if self.set_user_restriction(chat_id, user, until_date=until_date, reason=reason, can_send_messages=False):
             user.muted = True
             result = True
             # We'd need to parse the exception before assigning user.muted differently
@@ -166,7 +170,7 @@ class Bot:
 
         def _mute_user_if_absent() -> None:
             if user in chat.current_event.absentees:
-                self.mute_user(chat.id, user, timedelta(hours=1))
+                self.mute_user(chat.id, user, timedelta(hours=1), reason="User does not attend event.")
 
         attendees = chat.current_event.attendees
 
