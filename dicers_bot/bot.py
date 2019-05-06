@@ -412,6 +412,9 @@ class Bot:
 
         self.logger.info(f"A new member ({update.effective_user}) has joined this chat ({chat.id})")
 
+        if update.message:
+            update.message.reply_text("Welcome, fellow alcoholic.")
+
     @Command()
     def status(self, update: Update, context: CallbackContext) -> Message:
         return update.message.reply_text(text=f"{context.chat_data['chat']}")
