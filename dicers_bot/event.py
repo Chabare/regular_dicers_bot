@@ -46,7 +46,7 @@ class Event:
             "attendees": [attendee.serialize() for attendee in self.attendees],
             "absentees": [absentee.serialize() for absentee in self.absentees]
         }
-        self.logger.info("Serialized event: {}".format(serialized))
+        self.logger.info("Serialized event")  # .format(serialized))
         return serialized
 
     @classmethod
