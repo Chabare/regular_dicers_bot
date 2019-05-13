@@ -189,9 +189,12 @@ class Chat:
 
         if not self.current_event:
             self.logger.debug("No current event, emptying old attend message.")
-            self.attend_callback.edit_message_reply_markup(reply_markup=None)
-            self.attend_callback.answer()
-            self.attend_callback = None
+            try:
+                self.attend_callback.edit_message_reply_markup(reply_markup=None)
+                self.attend_callback.answer()
+                self.attend_callback = None
+            except BadRequest:
+                self.logger.warning("Could not use attend_callback", exc_info=True)
             return
 
         message = self._build_attend_message()
