@@ -220,6 +220,11 @@ class Bot:
             vote_count: int = len(chat.current_event.attendees) + len(chat.current_event.absentees)
             if len(chat.users) == vote_count and vote_count > 1:
                 self.send_message(chat_id=chat.id, text="Alle haben abgestimmt.")
+            else:
+                self.logger.debug(f"Not everyone has voted yet ({len(chat.users)} < {vote_count})"
+                                  f" or only one user present ({len(chat.users) == 1})")
+        else:
+            self.logger.debug(f"{user.name} has already voted")
 
         return True
 
