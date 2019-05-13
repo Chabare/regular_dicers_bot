@@ -313,34 +313,31 @@ class Bot:
 
         return result
 
-    def check_for_spam(self, chat_messages: Dict[Chat, Iterable[Message]]) -> None:
-        for chat, messages in chat_messages.items():
-            user_messages = dict((chat.get_user_by_id(user_id), set(user_messages)) for user_id, user_messages in
-                                 groupby(messages, lambda message: message.from_user.id))
-            for user, user_messages in user_messages.items():
-                user.messages = user_messages
-                spam_type = self._check_user_spam(list(user_messages), self.config.get("spam", {}))
-                spam_type_message = ""
-                timeout = timedelta(seconds=30)
-                if spam_type == SpamType.CONSECUTIVE:
-                    spam_type_message = "User has been muted due to being the only one sending messages (repeatedly)"
-                    timeout = timedelta(minutes=30)
-                elif spam_type == SpamType.DIFFERENT:
-                    spam_type_message = f"User ({user}) has been muted for sending different messages in a short time"
-                    timeout = timedelta(hours=1)
-                elif spam_type == SpamType.SAME:
-                    spam_type_message = f"User ({user}) is spamming the same message over and over again"
-                    timeout = timedelta(hours=2)
-                else:
-                    self.logger.debug("User ({}) is not spamming".format(user))
+    def check_for_spam(self, user: User, chat: Chat) -> None:
+        user_chat_messages = [message for message in user.messages if message.chat_id == chat.id]
 
-                if spam_type_message:
-                    if not user.spamming:
-                        user.spamming = True
-                        self.logger.warning(spam_type_message)
-                        self.mute_user(chat.id, user, timeout, reason=spam_type_message)
-                else:
-                    user.spamming = False
+        spam_type = self._check_user_spam(user_chat_messages, self.config.get("spam", {}))
+        spam_type_message = ""
+        timeout = timedelta(seconds=30)
+        if spam_type == SpamType.CONSECUTIVE:
+            spam_type_message = "User has been muted due to being the only one sending messages (repeatedly)"
+            timeout = timedelta(minutes=30)
+        elif spam_type == SpamType.DIFFERENT:
+            spam_type_message = f"User ({user}) has been muted for sending different messages in a short time"
+            timeout = timedelta(hours=1)
+        elif spam_type == SpamType.SAME:
+            spam_type_message = f"User ({user}) is spamming the same message over and over again"
+            timeout = timedelta(hours=2)
+        else:
+            self.logger.debug("User ({}) is not spamming".format(user))
+
+        if spam_type_message:
+            if not user.spamming:
+                user.spamming = True
+                self.logger.warning(spam_type_message)
+                self.mute_user(chat.id, user, timeout, reason=spam_type_message)
+        else:
+            user.spamming = False
 
     @staticmethod
     def _check_user_spam(user_messages: List[Message], spam_config: Dict[str, int]) -> SpamType:
@@ -395,9 +392,10 @@ class Bot:
     def handle_message(self, update: Update, context: CallbackContext) -> None:
         self.logger.info("Handle message: {}".format(update.message.text))
         chat: Chat = context.chat_data["chat"]
+        user: User = chat.get_user_by_id(update.effective_user.id)
 
         try:
-            self.check_for_spam({chat: chat.messages()})
+            self.check_for_spam(user, chat)
         except Exception as e:
             sentry_sdk.capture_exception()
             self.logger.exception("{}".format(e))
