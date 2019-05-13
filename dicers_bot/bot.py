@@ -81,7 +81,7 @@ class Bot:
     def register_main(self, update: Update, context: CallbackContext) -> Message:
         self.logger.info("Register main")
         chat = context.chat_data["chat"]
-        user = context.user_data["user"]
+        user = chat.get_user_by_id(update.effective_user.id)
 
         if not self.state.get("main_id", ""):
             self.logger.debug("main_id is not present")
@@ -173,8 +173,8 @@ class Bot:
     @Command()
     def handle_attend_callback(self, update: Update, context: CallbackContext) -> bool:
         callback: CallbackQuery = update.callback_query
-        user = context.user_data["user"]
         chat: Chat = context.chat_data["chat"]
+        user = chat.get_user_by_id(update.effective_user.id)
 
         chat.set_attend_callback(callback)
 
@@ -226,8 +226,8 @@ class Bot:
     @Command()
     def handle_dice_callback(self, update: Update, context: CallbackContext) -> None:
         callback: CallbackQuery = update.callback_query
-        user = context.user_data["user"]
         chat: Chat = context.chat_data["chat"]
+        user = chat.get_user_by_id(update.effective_user.id)
 
         chat.set_dice_callback(callback)
 

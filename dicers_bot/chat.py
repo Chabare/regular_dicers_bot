@@ -32,7 +32,6 @@ class ChatType(Enum):
             else:
                 return False
 
-
         return self.value == other
 
 

@@ -27,16 +27,8 @@ class Command:
         return chat
 
     @staticmethod
-    def _add_user(chat, update: Update, context: CallbackContext) -> dicers_bot.user.User:
-        filtered_users = [user for user in chat.users if update.effective_user.id == user.id]
-        if filtered_users:
-            user = filtered_users[0]
-        else:
-            user = dicers_bot.User.from_tuser(update.effective_user)
-
-        context.user_data["user"] = user
-
-        return user
+    def _add_user(update: Update, context: CallbackContext) -> dicers_bot.user.User:
+        return dicers_bot.User.from_tuser(update.effective_user)
 
     def __call__(self, func):
         def wrapped_f(*args, **kwargs):
@@ -70,9 +62,9 @@ class Command:
             if not clazz.chats.get(chat.id):
                 clazz.chats[chat.id] = chat
 
-            user = context.user_data.get("user")
+            user = chat.get_user_by_id(update.effective_user.id)
             if not user:
-                user = self._add_user(chat, update, context)
+                user = self._add_user(update, context)
 
             chat.add_user(user)
 
