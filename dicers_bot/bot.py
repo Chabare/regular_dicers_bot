@@ -146,7 +146,13 @@ class Bot:
         if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_messages=False):
             user.muted = True
             result = True
+
             # We'd need to parse the exception before assigning user.muted differently
+            def _set_user_unmute():
+                user.muted = False
+
+            self.logger.info(f"Set timer for {until_date.total_seconds()}s to set user mute state to `False`")
+            Timer(until_date.total_seconds(), _set_user_unmute).start()
 
         return result
 
