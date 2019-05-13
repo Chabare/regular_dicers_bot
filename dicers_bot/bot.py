@@ -193,9 +193,10 @@ class Bot:
 
             chat.current_event.add_absentee(user)
             try:
-                chat.current_event.remove_attendee(user)
+                self.logger.info("Give user time to explain himself (15m), mute him afterwards.")
                 Timer(15 * 60, _mute_user_if_absent).start()
-            except Exception as e:
+                chat.current_event.remove_attendee(user)
+            except KeyError as e:
                 sentry_sdk.capture_exception()
                 self.logger.exception(e)
 
