@@ -141,6 +141,9 @@ class Bot:
         return result
 
     def mute_user(self, chat_id: str, user: User, until_date: timedelta, reason: Optional[str] = None) -> bool:
+        if user.muted:
+            return True
+
         result = False
         self.logger.info(f"Reason for muting: {reason}")
         if self.set_user_restriction(chat_id, user, until_date=until_date, can_send_messages=False):
