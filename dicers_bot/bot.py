@@ -178,6 +178,8 @@ class Bot:
 
         chat.set_attend_callback(callback)
 
+        user_has_voted_already = (user in chat.current_event.attendees) or (user in chat.current_event.absentees)
+
         def _mute_user_if_absent() -> None:
             if user in chat.current_event.absentees:
                 self.mute_user(chat.id, user, timedelta(hours=1))
@@ -215,7 +217,6 @@ class Bot:
             sentry_sdk.capture_exception()
             self.logger.exception(e)
 
-        user_has_voted_already = (user in chat.current_event.attendees) or (user in chat.current_event.absentees)
         if not user_has_voted_already:
             vote_count: int = len(chat.current_event.attendees) + len(chat.current_event.absentees)
             if len(chat.users) == vote_count and vote_count > 1:
