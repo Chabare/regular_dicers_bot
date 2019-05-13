@@ -153,8 +153,16 @@ class Bot:
     # noinspection PyUnusedLocal
     @Command(main_admin=True)
     def remind_users(self, update: Optional[Update], context: Optional[CallbackContext]) -> bool:
-        # Check that all chat keyboards have been set correctly
-        return all([bool(chat.show_attend_keyboard()) for chat in self.chats.values()])
+        result = True
+        for chat in self.chats.values():
+            try:
+                if not chat.show_attend_keyboard():
+                    result = False
+            except TelegramError:
+                self.logger.error(f"Failed to reset chat {chat}", exc_info=True)
+                result = False
+
+        return result
 
     @Command()
     def handle_attend_callback(self, update: Update, context: CallbackContext) -> bool:
