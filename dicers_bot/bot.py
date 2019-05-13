@@ -329,8 +329,12 @@ class Bot:
                     self.logger.debug("User ({}) is not spamming".format(user))
 
                 if spam_type_message:
-                    self.logger.warning(spam_type_message)
-                    self.mute_user(chat.id, user, timeout, reason=spam_type_message)
+                    if not user.spamming:
+                        user.spamming = True
+                        self.logger.warning(spam_type_message)
+                        self.mute_user(chat.id, user, timeout, reason=spam_type_message)
+                else:
+                    user.spamming = False
 
     @staticmethod
     def _check_user_spam(user_messages: List[Message], spam_config: Dict[str, int]) -> SpamType:
@@ -338,6 +342,8 @@ class Bot:
 
         :rtype: SpamType
         """
+        logger = create_logger("_check_user_spam")
+
         consecutive_message_limit: int = spam_config.get("consecutive_message_limit", 8)
         consecutive_message_timeframe: int = spam_config.get("consecutive_message_timeframe", 5)
         same_message_limit: int = spam_config.get("same_message_limit", 3)
@@ -374,6 +380,7 @@ class Bot:
                 first = messages[0].date
                 last = messages[-1].date
                 if last - first < timedelta(hours=same_message_timeframe):
+                    logger.debug("SpamType.SAME {}(x{})".format(message_text, count))
                     return SpamType.SAME
 
         return SpamType.NONE

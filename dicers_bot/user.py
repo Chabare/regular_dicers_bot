@@ -15,6 +15,7 @@ class User:
         self._internal = chat_user
         self.muted = False
         self.messages: Set[Message] = set()
+        self.spamming = False
 
     def set_roll(self, roll: int) -> None:
         self.roll = roll
