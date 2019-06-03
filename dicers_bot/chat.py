@@ -221,6 +221,11 @@ class Chat:
                 message += "Alle 🎉"
             else:
                 message += user_string
+
+            sind_die_kurzen_dabei: bool = all(kurze in user_string.lower() for kurze in ["nadine", "tashina"])
+            if sind_die_kurzen_dabei:
+                message += " #dieKurzenSindDabei"
+
         else:
             message += "Niemand :("
         if absentees:
