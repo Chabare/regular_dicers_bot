@@ -444,13 +444,17 @@ class Bot:
         return self.send_message(chat_id=chat.id, text=message)
 
     @Command()
-    def new_member(self, update: Update, context: CallbackContext):
+    def new_member(self, update: Update, context: CallbackContext) -> None:
         chat = context.chat_data["chat"]
 
         self.logger.info(f"A new member ({update.effective_user}) has joined this chat ({chat.id})")
 
-        if update.message:
-            update.message.reply_text("Welcome, fellow alcoholic.")
+        if not update.message:
+            return
+
+        for member in update.message.new_chat_members:
+            if member.id != self.updater.bot.id:
+                update.message.reply_text("Welcome, fellow alcoholic.")
 
     @Command()
     def status(self, update: Update, context: CallbackContext) -> Message:
