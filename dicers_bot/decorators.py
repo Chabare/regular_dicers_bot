@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import inspect
 from datetime import timedelta
 
@@ -5,6 +7,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 import dicers_bot
+from . import chat, logger
 
 
 class Command:
@@ -111,3 +114,22 @@ class Command:
                 logger.debug("End")
 
         return wrapped_f
+
+
+def group(function):
+    def wrapper(clz: chat.Chat, *args, **kwargs):
+        log = logger.create_logger(f"group_wrapper_{function.__name__}")
+        log.debug("Start")
+        if not (hasattr(clz, "type") and (isinstance(clz.type, str) or isinstance(clz.type, chat.ChatType))):
+            message = "group decorator can only be used on a class which has a `type` attribute of type `str` or `chat.ChatType`."
+            log.error(message)
+            raise TypeError(message)
+
+        if clz.type == chat.ChatType.PRIVATE:
+            log.debug("Not executing group function in private chat.")
+            return False
+
+        log.debug("Execute function")
+        return function(clz, *args, **kwargs)
+
+    return wrapper

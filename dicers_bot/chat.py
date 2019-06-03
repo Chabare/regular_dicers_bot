@@ -9,6 +9,7 @@ from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboar
 from telegram.error import BadRequest
 
 from dicers_bot.user import User
+from .decorators import group
 from .event import Event
 from .logger import create_logger
 
@@ -94,6 +95,7 @@ class Chat:
 
         return chat
 
+    @group
     def pin_message(self, message_id: int, disable_notifications: bool = True, unpin: bool = False) -> bool:
         self.logger.info("Pin message")
         if unpin:
@@ -117,6 +119,7 @@ class Chat:
 
         return successful_pin
 
+    @group
     def unpin_message(self) -> bool:
         self.logger.info("Unpin message")
 
@@ -325,6 +328,7 @@ class Chat:
 
         return result
 
+    @group
     def administrators(self) -> Set[User]:
         """
         Lists all administrators in this chat.
