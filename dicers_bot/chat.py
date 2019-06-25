@@ -248,10 +248,14 @@ class Chat:
             return None
 
         if not self.current_event:
-            self.logger.debug("No current event, emptying old attend message.")
-            self.dice_callback.edit_message_reply_markup(reply_markup=None)
-            self.dice_callback.answer()
-            self.dice_callback = None
+            self.logger.debug("No current event, emptying old dice message.")
+            try:
+                self.dice_callback.edit_message_reply_markup(reply_markup=None)
+                self.dice_callback.answer()
+                self.dice_callback = None
+            except BadRequest:
+                self.logger.warning("Could not use dice_callback", exc_info=True)
+            
             return None
 
         message = self._build_dice_message()
