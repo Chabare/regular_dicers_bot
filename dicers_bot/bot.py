@@ -3,13 +3,13 @@ import re
 from collections import Counter
 from datetime import datetime, timedelta
 from enum import Enum
-from itertools import groupby, zip_longest
+from itertools import zip_longest
 from threading import Timer
 from typing import Any, List, Optional, Dict, Iterable, Set, Tuple, Sequence
 
 import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, Updater
 
 from dicers_bot.chat import Chat, User, Keyboard
 from dicers_bot.config import Config
@@ -32,10 +32,10 @@ class SpamType(Enum):
 
 
 class Bot:
-    def __init__(self, updater):
+    def __init__(self, updater: Updater):
         self.chats: Dict[str, Chat] = {}
         self.updater = updater
-        self.state: Dict = {
+        self.state: Dict[str, Any] = {
             "main_id": None
         }
         self.calendar = Calendar()
@@ -44,7 +44,7 @@ class Bot:
 
     @Command()
     def show_dice(self, update: Update, context: CallbackContext) -> Optional[Message]:
-        chat = context.chat_data["chat"]
+        chat: Chat = context.chat_data["chat"]
         return chat.show_dice()
 
     @Command(main_admin=True)
@@ -59,7 +59,7 @@ class Bot:
                 self.logger.warning(
                     f"Can't show keyboard for {chat_id}, `context` is `None` and `chat_id` is not in `self.chats`.")
 
-    def hide_attend(self, chat_id) -> bool:
+    def hide_attend(self, chat_id: str) -> bool:
         chat: Chat = self.chats[chat_id]
         return chat.hide_attend()
 
@@ -80,8 +80,8 @@ class Bot:
     @Command()
     def register_main(self, update: Update, context: CallbackContext) -> Message:
         self.logger.info("Register main")
-        chat = context.chat_data["chat"]
-        user = chat.get_user_by_id(update.effective_user.id)
+        chat: Chat = context.chat_data["chat"]
+        user: User = context.user_data["user"]
 
         if not self.state.get("main_id", ""):
             self.logger.debug("main_id is not present")
@@ -112,8 +112,8 @@ class Bot:
                              **kwargs) -> bool:
         timestamp: int = int((datetime.now() + until_date).timestamp())
         try:
-            result = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
-                                                           **kwargs)
+            result: bool = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
+                                                                 **kwargs)
             if not kwargs.get("can_send_messages", False):
                 message = f"{user.name} has been restricted for {str(until_date)}."
                 if reason:
@@ -181,7 +181,7 @@ class Bot:
     def handle_attend_callback(self, update: Update, context: CallbackContext) -> bool:
         callback: CallbackQuery = update.callback_query
         chat: Chat = context.chat_data["chat"]
-        user = chat.get_user_by_id(update.effective_user.id)
+        user = context.user_data["user"]
 
         chat.set_attend_callback(callback)
 

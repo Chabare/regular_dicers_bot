@@ -203,7 +203,7 @@ class Chat:
         self.logger.info("Edit message (%s)", message)
 
         try:
-            result = self.attend_callback.edit_message_text(text=message, reply_markup=self.get_attend_keyboard())
+            result: Message = self.attend_callback.edit_message_text(text=message, reply_markup=self.get_attend_keyboard())
             self.logger.info("edit_message_text returned: %s", result)
         except BadRequest:
             # This will happen if the message didn't change
