@@ -70,6 +70,7 @@ class Command:
                 user = self._add_user(update, context)
 
             chat.add_user(user)
+            context.user_data["user"] = user
 
             if self.main_admin:
                 if chat.id == clazz.state.get("main_id"):
