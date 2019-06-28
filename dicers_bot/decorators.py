@@ -70,6 +70,7 @@ class Command:
                 user = self._add_user(update, context)
 
             chat.add_user(user)
+            context.user_data["user"] = user
 
             if self.main_admin:
                 if chat.id == clazz.state.get("main_id"):
@@ -91,7 +92,7 @@ class Command:
                     exception = PermissionError()
 
             if update.effective_message:
-                chat.add_message(update.effective_message)  # Needs user in chat
+                chat.add_message(update)  # Needs user in chat
 
             logger.debug(execution_message)
             try:

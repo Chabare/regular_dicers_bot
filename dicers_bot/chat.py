@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, Set, List, Dict, Any
 
-from telegram import Bot as TBot
+from telegram import Bot as TBot, Update
 from telegram import Chat as TChat
 from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
 from telegram.error import BadRequest
@@ -383,10 +383,10 @@ class Chat:
 
         return result
 
-    def add_message(self, message: Message) -> None:
-        user = self.get_user_by_id(message.from_user.id)
+    def add_message(self, update: Update) -> None:
+        user = self.get_user_by_id(update.effective_user.id)
 
-        user.messages.add(message)
+        user.messages.add(update.effective_message)
 
     def messages(self) -> List[Message]:
         messages = []
