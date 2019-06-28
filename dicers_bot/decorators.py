@@ -92,7 +92,7 @@ class Command:
                     exception = PermissionError()
 
             if update.effective_message:
-                chat.add_message(update.effective_message)  # Needs user in chat
+                chat.add_message(update)  # Needs user in chat
 
             logger.debug(execution_message)
             try:
