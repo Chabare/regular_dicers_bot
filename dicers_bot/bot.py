@@ -189,7 +189,7 @@ class Bot:
 
         def _mute_user_if_absent() -> None:
             if user in chat.current_event.absentees:
-                self.mute_user(chat.id, user, timedelta(hours=1), reason="User does not attend event.")
+                self.mute_user(chat.id, user, timedelta(hours=1), reason=f"{user.name} is a pussy")
 
         attendees = chat.current_event.attendees
 
