@@ -285,6 +285,8 @@ class Bot:
 
         try:
             chat.reset()
+            for user in chat.users:
+                self.unmute_user(chat.id, user)
         except TelegramError:
             self.logger.warning(f"Could not reset for chat {chat.id}", exc_info=True)
             message = "Could not perform reset."

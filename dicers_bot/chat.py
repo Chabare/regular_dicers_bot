@@ -255,7 +255,7 @@ class Chat:
                 self.dice_callback = None
             except BadRequest:
                 self.logger.warning("Could not use dice_callback", exc_info=True)
-            
+
             return None
 
         message = self._build_dice_message()
@@ -404,6 +404,7 @@ class Chat:
         for user in self.users:
             user.roll = -1
             user.jumbo = False
+            user.muted = False
 
     def __repr__(self) -> str:
         return f"<{self.id} | {self.title}>"
