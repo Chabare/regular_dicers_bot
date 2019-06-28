@@ -43,10 +43,10 @@ class Command:
             arguments = signature.bind(*args, **kwargs).arguments
 
             clazz: dicers_bot.Bot = arguments.get("self")
-            update = arguments.get("update")
-            context = arguments.get("context")
-            execution_message = f"Executing {func.__name__}"
-            finished_execution_message = f"Finished executing {func.__name__}"
+            update: Update = arguments.get("update")
+            context: CallbackContext = arguments.get("context")
+            execution_message: str = f"Executing {func.__name__}"
+            finished_execution_message: str = f"Finished executing {func.__name__}"
 
             if not update:
                 logger.debug("Execute function due to coming directly from the bot.")
@@ -90,8 +90,8 @@ class Command:
                     logger.error("User isn't a chat_admin and is not allowed to perform this action.")
                     exception = PermissionError()
 
-            if update.message:
-                chat.add_message(update.message)  # Needs user in chat
+            if update.effective_message:
+                chat.add_message(update.effective_message)  # Needs user in chat
 
             logger.debug(execution_message)
             try:
@@ -102,8 +102,8 @@ class Command:
                 logger.debug(finished_execution_message)
                 return result
             except PermissionError:
-                if update.message:
-                    update.message.reply_text("You're not allowed to perform this action.")
+                if update.effective_message:
+                    update.effective_message.reply_text("You're not allowed to perform this action.")
             except Exception as e:
                 # Log for debugging purposes
                 logger.error(str(e), exc_info=True)

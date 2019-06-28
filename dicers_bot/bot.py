@@ -99,14 +99,14 @@ class Bot:
                 self.logger.debug("User tries to register a main_chat despite of there being an existing one")
                 message = "You can't register as the main chat, since there already is one."
 
-        return update.message.reply_text(text=message)
+        return update.effective_message.reply_text(text=message)
 
     @Command(main_admin=True)
     def unregister_main(self, update: Update, context: CallbackContext) -> Message:
         self.logger.info("Unregistering main chat")
         self.state["main_id"] = None
 
-        return update.message.reply_text(text="You've been unregistered as the main chat")
+        return update.effective_message.reply_text(text="You've been unregistered as the main chat")
 
     def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, reason: str = None,
                              **kwargs) -> bool:
@@ -290,7 +290,7 @@ class Bot:
             message = "Could not perform reset."
             result = False
 
-        update.message.reply_text(text=message)
+        update.effective_message.reply_text(text=message)
 
         return result
 
@@ -310,7 +310,7 @@ class Bot:
                 message = "Could not perform reset."
 
             if update:
-                update.message.reply_text(text=message)
+                update.effective_message.reply_text(text=message)
 
         result = True
         if all(value for _, value in success.items()):
@@ -322,7 +322,7 @@ class Bot:
             result = False
 
         if update:
-            update.message.reply_text(text=message, disable_notification=True)
+            update.effective_message.reply_text(text=message, disable_notification=True)
 
         return result
 
@@ -407,7 +407,7 @@ class Bot:
 
     @Command()
     def handle_message(self, update: Update, context: CallbackContext) -> None:
-        self.logger.info("Handle message: {}".format(update.message.text))
+        self.logger.info("Handle message: {}".format(update.effective_message.text))
         chat: Chat = context.chat_data["chat"]
         user: User = chat.get_user_by_id(update.effective_user.id)
 
@@ -421,8 +421,8 @@ class Bot:
 
     @Command()
     def handle_left_chat_member(self, update: Update, context: CallbackContext) -> None:
-        if update.message.left_chat_member.id != self.updater.bot.id:
-            update.message.reply_text("Bye bye birdie")
+        if update.effective_message.left_chat_member.id != self.updater.bot.id:
+            update.effective_message.reply_text("Bye bye birdie")
 
     def set_state(self, state: Dict[str, Any]) -> None:
         self.state = state
@@ -449,22 +449,22 @@ class Bot:
 
         self.logger.info(f"A new member ({update.effective_user}) has joined this chat ({chat.id})")
 
-        if not update.message:
+        if not update.effective_message:
             return
 
-        for member in update.message.new_chat_members:
+        for member in update.effective_message.new_chat_members:
             if member.id != self.updater.bot.id:
-                update.message.reply_text("Welcome, fellow alcoholic.")
+                update.effective_message.reply_text("Welcome, fellow alcoholic.")
 
     @Command()
     def status(self, update: Update, context: CallbackContext) -> Message:
-        return update.message.reply_text(text=f"{context.chat_data['chat']}")
+        return update.effective_message.reply_text(text=f"{context.chat_data['chat']}")
 
     @Command()
     def version(self, update: Update, context: CallbackContext) -> Message:
-        return update.message.reply_text("{{VERSION}}")
+        return update.effective_message.reply_text("{{VERSION}}")
 
     @Command()
     def server_time(self, update: Update, context: CallbackContext) -> Message:
         time = datetime.now().strftime("%d-%m-%Y %H-%M-%S")
-        return update.message.reply_text(time)
+        return update.effective_message.reply_text(time)
