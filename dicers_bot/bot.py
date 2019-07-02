@@ -14,6 +14,7 @@ from telegram.ext import CallbackContext, Updater
 from dicers_bot.chat import Chat, User, Keyboard
 from dicers_bot.config import Config
 from dicers_bot.decorators import Command
+from dicers_bot.event import Event
 from .calendar import Calendar
 from .logger import create_logger
 
@@ -439,9 +440,13 @@ class Bot:
         chat: Chat = context.chat_data["chat"]
 
         message = ""
+        events: List[Event] = chat.events
+        if chat.current_event:
+            events += [chat.current_event]
+
         for user in chat.users:
             attendance_count = 0
-            for event in chat.events + [chat.current_event]:
+            for event in events:
                 if user in event.attendees:
                     attendance_count += 1
 
