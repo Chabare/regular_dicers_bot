@@ -436,9 +436,16 @@ class Bot:
 
     @Command()
     def show_users(self, update: Update, context: CallbackContext) -> Optional[Message]:
-        chat = context.chat_data["chat"]
+        chat: Chat = context.chat_data["chat"]
 
-        message = "\n".join([str(user) for user in chat.users])
+        message = ""
+        for user in chat.users:
+            attendance_count = 0
+            for event in chat.events + [chat.current_event]:
+                if user in event.attendees:
+                    attendance_count += 1
+
+            message += f"\n{str(user)} ({attendance_count}/{len(chat.events)})"
 
         if not message:
             message = "No active users. Users need to write a message in the chat to be recognized (not just a command)"
