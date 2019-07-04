@@ -40,13 +40,13 @@ class Event:
         self.attendees.remove(user)
 
     def serialize(self) -> Dict[str, Any]:
-        self.logger.info("Serialize event")
+        # self.logger.info("Serialize event")
         serialized = {
             "timestamp": self.timestamp.strftime(self.date_format),
             "attendees": [attendee.serialize() for attendee in self.attendees],
             "absentees": [absentee.serialize() for absentee in self.absentees]
         }
-        self.logger.info("Serialized event")  # .format(serialized))
+        # self.logger.info("Serialized event")  # .format(serialized))
         return serialized
 
     @classmethod
