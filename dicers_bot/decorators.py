@@ -33,7 +33,7 @@ class Command:
 
     @staticmethod
     def _add_user(update: Update, context: CallbackContext) -> user.User:
-        return User.from_tuser(update.effective_user)
+        return user.User.from_tuser(update.effective_user)
 
     def __call__(self, func):
         def wrapped_f(*args, **kwargs):
