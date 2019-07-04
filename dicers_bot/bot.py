@@ -520,14 +520,14 @@ class Bot:
         for user, at_tuple in sorted_users:
             attended: int = at_tuple[0]
             total: float = at_tuple[1]
-            message += f"\n{user.name}: {total}/{attended} = {total / attended:.2f}"
+            message += f"\n{user.name}: `{total}`€/`{attended}` = `{total / attended:.2f}`€"
 
         if total_attendance == 0:
             message = "There are no stats yet."
         else:
-            message += f"\nTotal: {total_price}/{total_attendance} = {total_price / total_attendance:.2f}"
+            message += f"\nTotal: `{total_price}`€/`{total_attendance}` = `{total_price / total_attendance:.2f}`€"
 
-        return update.effective_message.reply_text(message)
+        return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
     @Command()
     def get_data(self, update: Update, context: CallbackContext) -> Message:
