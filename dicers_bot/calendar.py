@@ -32,7 +32,7 @@ class Calendar:
         try:
             credentials = self._load_credentials(filename)
             self.service = build("calendar", "v3", http=credentials.authorize(Http()))
-            self.logger.info("Calendar initialized.")
+            self.logger.debug("Calendar initialized.")
         except Exception as e:
             self.logger.warning("Calendar module is disabled. Reason: %s", str(e))
             self.service = None

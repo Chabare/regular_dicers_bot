@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Set, Dict, Any, Optional
 
-from dicers_bot.chat import User
+from .chat import User
 from .logger import create_logger
 
 

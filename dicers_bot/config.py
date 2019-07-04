@@ -1,7 +1,7 @@
 import json
 from json import JSONDecodeError
 
-from dicers_bot.logger import create_logger
+from .logger import create_logger
 
 
 class Config(dict):

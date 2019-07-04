@@ -8,7 +8,7 @@ from telegram import Chat as TChat
 from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
 from telegram.error import BadRequest
 
-from dicers_bot.user import User
+from .user import User
 from .decorators import group
 from .event import Event
 from .logger import create_logger
@@ -38,19 +38,17 @@ class ChatType(Enum):
 
 class Chat:
     def __init__(self, _id: str, bot: TBot):
+        self.logger = create_logger("chat_{}".format(_id))
+        self.logger.debug("Create chat")
         self.events: List[Event] = []
         self.pinned_message_id: Optional[int] = None
         self.current_event: Optional[Event] = None
         self.attend_callback: Optional[CallbackQuery] = None
         self.dice_callback: Optional[CallbackQuery] = None
         self.current_keyboard = Keyboard.NONE
-        self.logger = create_logger("chat_{}".format(_id))
-        self.logger.info("Create chat")
         self.id: str = _id
         self.bot: TBot = bot
-        self.logger.info("Created chat")
         self.start_event()
-        self.logger.info("Initialize empty user set")
         self.users: Set[User] = set()
         self.title = None
         self.type = ChatType.UNDEFINED
@@ -61,7 +59,6 @@ class Chat:
         return result
 
     def serialize(self) -> Dict[str, Any]:
-        self.logger.info("Serialize chat")
         serialized_event = None
         if self.current_event:
             serialized_event = self.current_event.serialize()
@@ -74,7 +71,6 @@ class Chat:
             "users": [user.serialize() for user in self.users],
             "title": self.title
         }
-        self.logger.info("Serialized chat: {}".format(serialized))
 
         return serialized
 
@@ -97,9 +93,8 @@ class Chat:
 
     @group
     def pin_message(self, message_id: int, disable_notifications: bool = True, unpin: bool = False) -> bool:
-        self.logger.info("Pin message")
         if unpin:
-            self.logger.info("Force unpin before pinning")
+            self.logger.debug("Force unpin before pinning")
             self.unpin_message()
 
         successful_pin = False
@@ -112,17 +107,15 @@ class Chat:
 
         if successful_pin:
             self.pinned_message_id = message_id
-            self.logger.info("Successfully pinned message: {}".format(message_id))
+            self.logger.debug("Successfully pinned message: {}".format(message_id))
             return True
         else:
-            self.logger.info("Pinning message failed")
+            self.logger.warning("Pinning message failed")
 
         return successful_pin
 
     @group
     def unpin_message(self) -> bool:
-        self.logger.info("Unpin message")
-
         successful_unpin = False
         try:
             successful_unpin = self.bot.unpin_chat_message(chat_id=self.id)
@@ -291,9 +284,15 @@ class Chat:
         return message
 
     def _send_message(self, **kwargs) -> Message:
-        self.logger.info(
-            "Send message with: {}".format(" | ".join(["{}: {}".format(key, val) for key, val in kwargs.items()]))
-        )
+        """
+        Alias for `self.bot.send_message(chat_id=self.id, [...])`
+        :param kwargs: Dict[str, Any] Passed to bot.send_message
+        :raises: TelegramError Raises TelegramError if the message couldn't be sent
+        :return:
+        """
+        message = " | ".join(["{}: {}".format(key, val) for key, val in kwargs.items()])
+        self.logger.info(f"Send message with: {message}")
+
         result = self.bot.send_message(chat_id=self.id, **kwargs)
 
         self.logger.info("Result of sending message: {}".format(result))
@@ -319,6 +318,10 @@ class Chat:
         return result
 
     def show_attend_keyboard(self) -> Message:
+        """
+        :raises: TelegramError Raises TelegramError if the message couldn't be sent
+        :return: Message Attend keyboard message
+        """
         self.logger.info("Show attend keyboard")
 
         # Start an event if none exists
@@ -344,7 +347,7 @@ class Chat:
         Skips administrators who are not in `self.users`.
         This doesn't work in private chats, since there are no admins in a private chat
 
-        :return: Administrators in this chat List[User]
+        :return: Administrators in this chat Set[User]
         """
         administrators: Set[User] = set()
 

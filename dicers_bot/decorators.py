@@ -6,8 +6,10 @@ from datetime import timedelta
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import dicers_bot
-from . import chat, logger
+from . import bot
+from . import chat
+from . import logger
+from . import user
 
 
 class Command:
@@ -16,44 +18,44 @@ class Command:
         self.main_admin = main_admin
 
     @staticmethod
-    def _add_chat(clazz, update: Update, context: CallbackContext) -> dicers_bot.chat.Chat:
-        chat = clazz.chats.get(update.effective_chat.id)
-        if not chat:
-            chat = dicers_bot.Chat(update.effective_chat.id, clazz.updater.bot)
-            clazz.chats[chat.id] = chat
+    def _add_chat(clazz, update: Update, context: CallbackContext) -> chat.Chat:
+        new_chat = clazz.chats.get(update.effective_chat.id)
+        if not new_chat:
+            new_chat = chat.Chat(update.effective_chat.id, clazz.updater.bot)
+            clazz.chats[new_chat.id] = new_chat
 
-        context.chat_data["chat"] = chat
+        context.chat_data["chat"] = new_chat
 
-        chat.title = update.effective_chat.title
-        chat.type = update.effective_chat.type
+        new_chat.title = update.effective_chat.title
+        new_chat.type = update.effective_chat.type
 
-        return chat
+        return new_chat
 
     @staticmethod
-    def _add_user(update: Update, context: CallbackContext) -> dicers_bot.user.User:
-        return dicers_bot.User.from_tuser(update.effective_user)
+    def _add_user(update: Update, context: CallbackContext) -> user.User:
+        return User.from_tuser(update.effective_user)
 
     def __call__(self, func):
         def wrapped_f(*args, **kwargs):
             exception = None
-            logger = dicers_bot.create_logger(f"command_{func.__name__}")
-            logger.debug("Start")
+            log = logger.create_logger(f"command_{func.__name__}")
+            log.debug("Start")
 
             signature = inspect.signature(func)
             arguments = signature.bind(*args, **kwargs).arguments
 
-            clazz: dicers_bot.Bot = arguments.get("self")
+            clazz: bot.Bot = arguments.get("self")
             update: Update = arguments.get("update")
             context: CallbackContext = arguments.get("context")
             execution_message: str = f"Executing {func.__name__}"
             finished_execution_message: str = f"Finished executing {func.__name__}"
 
             if not update:
-                logger.debug("Execute function due to coming directly from the bot.")
+                log.debug("Execute function due to coming directly from the bot.")
 
-                logger.debug(execution_message)
+                log.debug(execution_message)
                 result = func(*args, **kwargs)
-                logger.debug(finished_execution_message)
+                log.debug(finished_execution_message)
 
                 return result
 
@@ -74,45 +76,44 @@ class Command:
 
             if self.main_admin:
                 if chat.id == clazz.state.get("main_id"):
-                    logger.debug("Execute function due to coming from the main_chat")
+                    log.debug("Execute function due to coming from the main_chat")
                 else:
                     message = f"Chat {chat} is not allowed to perform this action."
-                    logger.warning(message)
+                    log.warning(message)
                     clazz.mute_user(chat_id=chat.id, user=user, until_date=timedelta(minutes=15), reason=message)
                     exception = PermissionError()
 
             if self.chat_admin:
-                admins = chat.administrators()
-                if user in admins:
-                    logger.debug("User is a chat admin and therefore allowed to perform this action, executing")
-                elif chat.type == dicers_bot.chat.ChatType.PRIVATE:
-                    logger.debug("Execute function due to coming from a private chat")
+                if chat.type == chat.ChatType.PRIVATE:
+                    log.debug("Execute function due to coming from a private chat")
+                elif user in chat.administrators():
+                    log.debug("User is a chat admin and therefore allowed to perform this action, executing")
                 else:
-                    logger.error("User isn't a chat_admin and is not allowed to perform this action.")
+                    log.error("User isn't a chat_admin and is not allowed to perform this action.")
                     exception = PermissionError()
 
             if update.effective_message:
                 chat.add_message(update)  # Needs user in chat
 
-            logger.debug(execution_message)
+            log.debug(execution_message)
             try:
                 if exception:
                     raise exception
 
                 result = func(*args, **kwargs)
-                logger.debug(finished_execution_message)
+                log.debug(finished_execution_message)
                 return result
             except PermissionError:
                 if update.effective_message:
                     update.effective_message.reply_text("You're not allowed to perform this action.")
             except Exception as e:
                 # Log for debugging purposes
-                logger.error(str(e), exc_info=True)
+                log.error(str(e), exc_info=True)
 
                 raise e
             finally:
                 clazz.save_state()
-                logger.debug("End")
+                log.debug("End")
 
         return wrapped_f
 

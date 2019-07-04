@@ -11,10 +11,10 @@ import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram.ext import CallbackContext, Updater
 
-from dicers_bot.chat import Chat, User, Keyboard
-from dicers_bot.config import Config
-from dicers_bot.decorators import Command
-from dicers_bot.event import Event
+from .chat import Chat, User, Keyboard
+from .config import Config
+from .decorators import Command
+from .event import Event
 from .calendar import Calendar
 from .logger import create_logger
 
@@ -88,6 +88,7 @@ class Bot:
             self.logger.debug("main_id is not present")
             self.state["main_id"] = chat.id
             message = "You have been registered as the main chat."
+            self.logger.info(f"Main chat ({chat.id}) has been registered")
         else:
             self.logger.debug("main_id is present")
             if chat.id == self.state.get("main_id", ""):
@@ -126,7 +127,7 @@ class Bot:
                 message = "Sadly, user {} couldn't be restricted due to: `{}`. Shame on {}".format(user.name,
                                                                                                    e.message,
                                                                                                    user.name)
-                self.logger.info("{}".format(message))
+                self.logger.debug("{}".format(message))
                 self.updater.bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
             self.logger.error(e)
             result = False
@@ -201,7 +202,7 @@ class Bot:
             self.unmute_user(chat.id, user)
         else:
             if user in attendees and user.roll != -1:
-                self.logger.warning(f"User {user.name} with roll tried to unattend.")
+                self.logger.debug(f"User {user.name} with roll tried to unattend.")
                 message = f"You ({user.name}) can't unattend after adding your roll."
                 self.send_message(chat_id=chat.id, text=message)
 
@@ -214,7 +215,7 @@ class Bot:
                 chat.current_event.remove_attendee(user)
             except KeyError as e:
                 sentry_sdk.capture_exception()
-                self.logger.exception(e)
+                self.logger.exception(e, exc_info=True)
 
             if chat.current_keyboard == Keyboard.DICE:
                 chat.update_dice_message()
@@ -223,7 +224,7 @@ class Bot:
             chat.update_attend_message()
         except Exception as e:
             sentry_sdk.capture_exception()
-            self.logger.exception(e)
+            self.logger.exception(e, exc_info=True)
 
         if not user_has_voted_already:
             vote_count: int = len(chat.current_event.attendees) + len(chat.current_event.absentees)
@@ -248,7 +249,7 @@ class Bot:
         attendees: Set[User] = chat.current_event.attendees
 
         if user.id not in [user.id for user in attendees]:
-            self.logger.info("User {} is not in attendees list".format(user.name))
+            self.logger.debug("User {} is not in attendees list".format(user.name))
             message = f"You ({user.name}) are not attending this event, you can't roll a dice yet."
             self.send_message(chat_id=chat.id, text=message)
             callback.answer()
@@ -267,13 +268,13 @@ class Bot:
     @Command()
     def remind_chat(self, update: Update, context: CallbackContext) -> bool:
         chat_id = context.chat_data["chat"].id
-        self.logger.info(f"Remind chat: {chat_id}")
+        self.logger.debug(f"Remind chat: {chat_id}")
 
         self.logger.info("Show attend keyboard for: {}".format(chat_id))
 
         result = self.chats[chat_id].show_attend_keyboard()
 
-        self.logger.info("Result if showing attend keyboard for {}: {}".format(chat_id, result))
+        self.logger.debug("Result if showing attend keyboard for {}: {}".format(chat_id, result))
 
         return bool(result)
 
@@ -418,9 +419,9 @@ class Bot:
             self.check_for_spam(user, chat)
         except Exception as e:
             sentry_sdk.capture_exception()
-            self.logger.exception("{}".format(e))
+            self.logger.exception(e, exc_info=True)
         else:
-            self.logger.info("Handled message")
+            self.logger.debug("Handled message")
 
     @Command()
     def handle_left_chat_member(self, update: Update, context: CallbackContext) -> None:
