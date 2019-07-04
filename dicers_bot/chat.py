@@ -8,10 +8,10 @@ from telegram import Chat as TChat
 from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
 from telegram.error import BadRequest
 
-from .user import User
 from .decorators import group
 from .event import Event
 from .logger import create_logger
+from .user import User
 
 
 class Keyboard(Enum):
@@ -196,7 +196,8 @@ class Chat:
         self.logger.info("Edit message (%s)", message)
 
         try:
-            result: Message = self.attend_callback.edit_message_text(text=message, reply_markup=self.get_attend_keyboard())
+            result: Message = self.attend_callback.edit_message_text(text=message,
+                                                                     reply_markup=self.get_attend_keyboard())
             self.logger.info("edit_message_text returned: %s", result)
         except BadRequest:
             # This will happen if the message didn't change

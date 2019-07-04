@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Set, Dict, Any, Optional
 
-from .chat import User
+from . import user
 from .logger import create_logger
 
 
@@ -13,7 +13,7 @@ class Event:
         self.timestamp = self._next_monday()
         self.logger = create_logger("event_{}".format(self.timestamp))
         self.logger.info("Create event")
-        self.attendees: Set[User] = set()
+        self.attendees: Set[user.User] = set()
         self.absentees: Set = set()
         self.logger.info("Created event for {}".format(self.timestamp))
 
@@ -27,7 +27,7 @@ class Event:
         self.absentees.remove(user)
         self.add_attendee(user)
 
-    def add_attendee(self, user: User) -> None:
+    def add_attendee(self, user: user.User) -> None:
         self.logger.info("Add {} to event".format(user))
         try:
             self.remove_absentee(user)
@@ -56,8 +56,8 @@ class Event:
 
         event = Event()
         event.timestamp = datetime.strptime(json_object.get("timestamp"), event.date_format)
-        event.attendees = set([User.deserialize(attendee) for attendee in json_object.get("attendees", [])])
-        event.absentees = set([User.deserialize(absentee) for absentee in json_object.get("absentees", [])])
+        event.attendees = set([user.User.deserialize(attendee) for attendee in json_object.get("attendees", [])])
+        event.absentees = set([user.User.deserialize(absentee) for absentee in json_object.get("absentees", [])])
 
         return event
 

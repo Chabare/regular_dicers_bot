@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Iterator, List
 
 from telegram import Message
 from telegram import User as TUser
+
+from .event import Event
 
 
 class User:
@@ -69,3 +71,8 @@ class User:
             "muted": self.muted,
             "id": self.id
         }
+
+    def get_attended_events(self, events: List[Event]) -> Iterator[Event]:
+        for event in events:
+            if self in event.attendees:
+                yield event

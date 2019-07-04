@@ -483,3 +483,40 @@ class Bot:
     def server_time(self, update: Update, context: CallbackContext) -> Message:
         time = datetime.now().strftime("%d-%m-%Y %H-%M-%S")
         return update.effective_message.reply_text(time)
+
+    @Command()
+    def price_stats(self, update: Update, context: CallbackContext) -> Message:
+        chat: Chat = context.chat_data["chat"]
+        message = ""
+
+        events: List[Event] = chat.events
+        if chat.current_event:
+            events += [chat.current_event]
+
+        total_attendance = 0
+        total_price = 0
+        for user in chat.users:
+            total = 0
+            attended = 0
+
+            for event in user.get_attended_events(events):
+                event_user: User = [euser for euser in event.attendees if euser == user][0]
+
+                if event_user.roll > 0:
+                    total += event_user.roll
+                    total += 1 if event_user.jumbo else 0
+                    attended += 1
+
+            if attended == 0:
+                continue
+
+            total_attendance += attended
+            total_price += total
+            message += f"\n{str(user)}: {total}/{attended} = {total / attended}"
+
+        if total_attendance == 0:
+            message = "There are no stats yet."
+        else:
+            message += f"\nTotal: {total_price}/{total_attendance} = {total_price / total_attendance}"
+
+        return update.effective_message.reply_text(message)
