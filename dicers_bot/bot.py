@@ -496,6 +496,7 @@ class Bot:
 
         total_attendance = 0
         total_price = 0
+        totals: Dict[User, Tuple[int, float]] = dict()
         for user in chat.users:
             total = 0
             attended = 0
@@ -511,8 +512,14 @@ class Bot:
             if attended == 0:
                 continue
 
+            totals[user] = (attended, total)
             total_attendance += attended
             total_price += total
+
+        sorted_users = sorted(totals.items(), key=lambda item: item[1][1])
+        for user, at_tuple in sorted_users:
+            attended: int = at_tuple[0]
+            total: float = at_tuple[1]
             message += f"\n{user.name}: {total}/{attended} = {total / attended:.2f}"
 
         if total_attendance == 0:
