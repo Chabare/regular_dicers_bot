@@ -1,5 +1,6 @@
 import json
 import re
+import tempfile
 from collections import Counter
 from datetime import datetime, timedelta
 from enum import Enum
@@ -11,11 +12,11 @@ import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram.ext import CallbackContext, Updater
 
+from .calendar import Calendar
 from .chat import Chat, User, Keyboard
 from .config import Config
 from .decorators import Command
 from .event import Event
-from .calendar import Calendar
 from .logger import create_logger
 
 
@@ -520,3 +521,16 @@ class Bot:
             message += f"\nTotal: {total_price}/{total_attendance} = {total_price / total_attendance:.2f}"
 
         return update.effective_message.reply_text(message)
+
+    @Command()
+    def get_data(self, update: Update, context: CallbackContext) -> Message:
+        chat: Chat = context.chat_data["chat"]
+        data = [_chat for _chat in self.state.get("chats", []) if _chat.get("id") == chat.id]
+
+        if data:
+            with tempfile.TemporaryFile() as temp:
+                temp.write(json.dumps(data[0]).encode("utf-8"))
+                temp.seek(0)
+                return self.updater.bot.send_document(chat_id=chat.id, document=temp, filename=f"{chat.title}.json")
+        else:
+            return update.effective_message.reply_text("Couldn't find any data for this chat.")

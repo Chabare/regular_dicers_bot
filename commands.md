@@ -12,4 +12,5 @@ version - Returns the SHA1 of the current commit
 server_time - Time on the server (debugging purposes)
 users - Shows every user in the chat who has participated in the chat at some time (format: <Name | Roll (jumbo) | muted>)
 price_stats - Shows every user with his associated price statistics ({user}: {attendance}/{price} = {attendance/price})
+get_data - Returns the state representation for the current chat as a file ({chat.title}.json)
 ```
