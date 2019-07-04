@@ -512,11 +512,11 @@ class Bot:
 
             total_attendance += attended
             total_price += total
-            message += f"\n{str(user)}: {total}/{attended} = {total / attended}"
+            message += f"\n{user.name}: {total}/{attended} = {total / attended:.2f}"
 
         if total_attendance == 0:
             message = "There are no stats yet."
         else:
-            message += f"\nTotal: {total_price}/{total_attendance} = {total_price / total_attendance}"
+            message += f"\nTotal: {total_price}/{total_attendance} = {total_price / total_attendance:.2f}"
 
         return update.effective_message.reply_text(message)
