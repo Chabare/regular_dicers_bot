@@ -4,8 +4,8 @@ WORKDIR /usr/src/app
 
 ENV TZ=Europe/Berlin
 
-RUN pip install --no-cache-dir -r requirements.txt
-
 COPY . .
+
+RUN pip install --no-cache-dir -r requirements.txt
 
 CMD python -B -O main.py
