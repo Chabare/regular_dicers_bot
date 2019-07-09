@@ -546,7 +546,7 @@ class Bot:
         else:
             return update.effective_message.reply_text("Couldn't find any data for this chat.")
 
-    @Command(chat_admin=True)
+    @Command()
     def add_insult(self, update: Update, context: CallbackContext) -> Message:
         text = " ".join(context.args)
 
