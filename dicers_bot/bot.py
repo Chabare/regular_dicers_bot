@@ -550,7 +550,7 @@ class Bot:
     def add_insult(self, update: Update, context: CallbackContext) -> Message:
         text = " ".join(context.args)
 
-        if Insult.add(text):
+        if text and Insult.add(text):
             message = update.effective_message.reply_text("Successfully added new insult")
         else:
             insult = Insult.random().text
