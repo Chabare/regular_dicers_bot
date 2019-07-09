@@ -9,4 +9,5 @@ services:
       - "./credentials.json:/usr/src/app/credentials.json"
       - "./secrets.json:/usr/src/app/credentials.json"
       - "./state.json:/usr/src/app/state.json"
+      - "./insults:/usr/src/app/insults"
 

@@ -18,6 +18,7 @@ from .config import Config
 from .decorators import Command
 from .event import Event
 from .logger import create_logger
+from .insult import Insult
 
 
 def grouper(iterable, n, fillvalue=None) -> Iterable[Tuple[Any, Any]]:
@@ -192,7 +193,10 @@ class Bot:
 
         def _mute_user_if_absent() -> None:
             if user in chat.current_event.absentees:
-                self.mute_user(chat.id, user, timedelta(hours=1), reason=f"{user.name} is a pussy")
+                insult = Insult.random().text
+                if "{username}" in insult:
+                    insult = insult.replace("{username}", user.name)
+                self.mute_user(chat.id, user, timedelta(hours=1), reason=insult)
 
         attendees = chat.current_event.attendees
 
@@ -541,3 +545,9 @@ class Bot:
                 return self.updater.bot.send_document(chat_id=chat.id, document=temp, filename=f"{chat.title}.json")
         else:
             return update.effective_message.reply_text("Couldn't find any data for this chat.")
+
+    @Command(chat_admin=True)
+    def add_insult(self, update: Update, context: CallbackContext):
+        text = " ".join(context.args)
+
+        Insult.add(text)

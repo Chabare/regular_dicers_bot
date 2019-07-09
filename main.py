@@ -56,6 +56,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("reset", bot.reset))
     dispatcher.add_handler(CommandHandler("delete_chat", bot.delete_chat))
     dispatcher.add_handler(CommandHandler("get_data", bot.get_data))
+    dispatcher.add_handler(CommandHandler("add_insult", bot.add_insult, pass_args=True))
 
     # main_admin
     dispatcher.add_handler(CommandHandler("remind_all", bot.remind_users))

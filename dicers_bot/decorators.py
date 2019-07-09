@@ -59,41 +59,41 @@ class Command:
 
                 return result
 
-            chat = context.chat_data.get("chat")
-            if not chat:
-                chat = self._add_chat(clazz, update, context)
-            chat.type = update.effective_chat.type
+            current_chat = context.chat_data.get("chat")
+            if not current_chat:
+                current_chat = self._add_chat(clazz, update, context)
+            current_chat.type = update.effective_chat.type
 
-            if not clazz.chats.get(chat.id):
-                clazz.chats[chat.id] = chat
+            if not clazz.chats.get(current_chat.id):
+                clazz.chats[current_chat.id] = current_chat
 
-            user = chat.get_user_by_id(update.effective_user.id)
-            if not user:
-                user = self._add_user(update, context)
+            current_user = current_chat.get_user_by_id(update.effective_user.id)
+            if not current_user:
+                current_user = self._add_user(update, context)
 
-            chat.add_user(user)
-            context.user_data["user"] = user
+            current_chat.add_user(current_user)
+            context.user_data["user"] = current_user
 
             if self.main_admin:
-                if chat.id == clazz.state.get("main_id"):
+                if current_chat.id == clazz.state.get("main_id"):
                     log.debug("Execute function due to coming from the main_chat")
                 else:
                     message = f"Chat {chat} is not allowed to perform this action."
                     log.warning(message)
-                    clazz.mute_user(chat_id=chat.id, user=user, until_date=timedelta(minutes=15), reason=message)
+                    clazz.mute_user(chat_id=current_chat.id, user=current_user, until_date=timedelta(minutes=15), reason=message)
                     exception = PermissionError()
 
             if self.chat_admin:
-                if chat.type == chat.ChatType.PRIVATE:
+                if current_chat.type == chat.ChatType.PRIVATE:
                     log.debug("Execute function due to coming from a private chat")
-                elif user in chat.administrators():
+                elif current_user in current_chat.administrators():
                     log.debug("User is a chat admin and therefore allowed to perform this action, executing")
                 else:
                     log.error("User isn't a chat_admin and is not allowed to perform this action.")
                     exception = PermissionError()
 
             if update.effective_message:
-                chat.add_message(update)  # Needs user in chat
+                current_chat.add_message(update)  # Needs user in chat
 
             log.debug(execution_message)
             try:
