@@ -550,9 +550,12 @@ class Bot:
     def add_insult(self, update: Update, context: CallbackContext) -> Message:
         text = " ".join(context.args)
 
+        self.logger.debug(f"Add insult ({text}) from {context.user_data['user'].name}")
         if text and Insult.add(text):
+            self.logger.debug("Insult added successfully")
             message = update.effective_message.reply_text("Successfully added new insult")
         else:
+            self.logger.debug("Insult was not added")
             insult = Insult.random().text
             if "{username}" in insult:
                 insult = insult.replace("{username}", update.effective_user.first_name)

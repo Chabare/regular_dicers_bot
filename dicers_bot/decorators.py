@@ -40,6 +40,7 @@ class Command:
             exception = None
             log = logger.create_logger(f"command_{func.__name__}")
             log.debug("Start")
+            log.debug(f"args: {args} | kwargs: {kwargs}")
 
             signature = inspect.signature(func)
             arguments = signature.bind(*args, **kwargs).arguments
@@ -59,6 +60,7 @@ class Command:
 
                 return result
 
+            log.debug(f"message from user: {update.effective_user.first_name}")
             current_chat = context.chat_data.get("chat")
             if not current_chat:
                 current_chat = self._add_chat(clazz, update, context)
@@ -87,12 +89,13 @@ class Command:
                 if current_chat.type == chat.ChatType.PRIVATE:
                     log.debug("Execute function due to coming from a private chat")
                 elif current_user in current_chat.administrators():
-                    log.debug("User is a chat admin and therefore allowed to perform this action, executing")
+                    log.debug(f"User ({current_user.name}) is a chat admin and therefore allowed to perform this action, executing")
                 else:
-                    log.error("User isn't a chat_admin and is not allowed to perform this action.")
+                    log.error(f"User ({current_user.name}) isn't a chat_admin and is not allowed to perform this action.")
                     exception = PermissionError()
 
             if update.effective_message:
+                log.debug(f"Message: {update.effective_message.text}")
                 current_chat.add_message(update)  # Needs user in chat
 
             log.debug(execution_message)
@@ -105,7 +108,7 @@ class Command:
                 return result
             except PermissionError:
                 if update.effective_message:
-                    update.effective_message.reply_text("You're not allowed to perform this action.")
+                    update.effective_message.reply_text(f"You ({current_user.name}) are not allowed to perform this action.")
             except Exception as e:
                 # Log for debugging purposes
                 log.error(str(e), exc_info=True)
