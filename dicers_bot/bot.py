@@ -547,7 +547,15 @@ class Bot:
             return update.effective_message.reply_text("Couldn't find any data for this chat.")
 
     @Command(chat_admin=True)
-    def add_insult(self, update: Update, context: CallbackContext):
+    def add_insult(self, update: Update, context: CallbackContext) -> Message:
         text = " ".join(context.args)
 
-        Insult.add(text)
+        if Insult.add(text):
+            message = update.effective_message.reply_text("Successfully added new insult")
+        else:
+            insult = Insult.random().text
+            if "{username}" in insult:
+                insult = insult.replace("{username}", update.effective_user.first_name)
+            message = update.effective_message.reply_text(f"Not a new insult\n{insult}")
+
+        return message

@@ -24,7 +24,7 @@ class Insult:
         return insults[random.randint(0, len(insults) - 1)]
 
     @staticmethod
-    def add(text: str):
+    def add(text: str) -> bool:
         if not Insult.cache:
             Insult.cache = Insult._read_all()
 
@@ -32,3 +32,7 @@ class Insult:
             Insult.cache.append(Insult(text))
             with open(Insult.FILENAME, "a+") as file:
                 file.writelines("\n" + text)
+
+            return True
+
+        return False
