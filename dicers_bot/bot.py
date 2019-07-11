@@ -140,9 +140,14 @@ class Bot:
         result = False
 
         try:
-            if self.updater.bot.promote_chat_member(chat_id, user.id, can_post_messages=True):
+            # if self.updater.bot.promote_chat_member(chat_id, user.id, can_post_messages=True):
+            if self.set_user_restriction(chat_id, user, timedelta(minutes=0), can_send_messages=True,
+                                         can_send_media_messages=True, can_send_other_messages=True,
+                                         can_add_web_page_previews=True):
                 user.muted = False
                 result = True
+            else:
+                self.logger.error("Failed to unmute user")
         except TelegramError:
             self.logger.error("Error while promoting chat member", exc_info=True)
 
@@ -562,3 +567,54 @@ class Bot:
             message = update.effective_message.reply_text(f"Not a new insult\n{insult}")
 
         return message
+
+    @Command(chat_admin=True)
+    def mute(self, update: Update, context: CallbackContext):
+        if not context.args:
+            message = "Please provide a user and an optional timeout (`/mute <user> [<timeout in minutes>] [<reason>]`)"
+            self.logger.warning("No arguments have been provided, don't execute `mute`.")
+            return self.updater.bot.send_message(chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
+
+        username = context.args[0]
+        minutes = 15
+        reason = " ".join(context.args[2:])
+
+        try:
+            minutes = int(context.args[1])
+        except (IndexError, ValueError):
+            sentry_sdk.capture_exception()
+            self.logger.error("Exception while getting time string from mute command", exc_info=True)
+
+        mute_time = timedelta(minutes=minutes)
+        chat = context.chat_data["chat"]
+
+        try:
+            user = next(filter(lambda x: x.name == username, chat.users))
+        except StopIteration:
+            sentry_sdk.capture_exception()
+            self.logger.warn(f"Couldn't find user {username} in users for chat {update.message.chat_id}", exc_info=True)
+            update.effective_message.reply_text(f"Can't mute {username} (not found in current chat).")
+        else:
+            self.mute_user(update.message.chat_id, user, until_date=mute_time, reason=reason)
+
+    @Command(chat_admin=True)
+    def unmute(self, update: Update, context: CallbackContext):
+        if not context.args:
+            message = "You have to provide a user which should be unmuted."
+            self.logger.warning("No arguments have been provided, don't execute `unmute`.")
+            return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
+        username = context.args[0]
+        chat = context.chat_data["chat"]
+
+        try:
+            user = next(filter(lambda x: x.name == username, chat.users))
+        except StopIteration:
+            sentry_sdk.capture_exception()
+            self.logger.warn(f"Couldn't find user {username} in users for chat {update.message.chat_id}", exc_info=True)
+            update.effective_message.reply_text(f"Can't unmute {username} (not found in current chat).")
+        else:
+            if self.unmute_user(update.effective_message.chat_id, user):
+                update.effective_message.reply_text(f"Successfully unmuted {username}.")
+            else:
+                update.effective_message.reply_text(f"Failed to unmute {username}.")
