@@ -52,6 +52,7 @@ class Chat:
         self.users: Set[User] = set()
         self.title = None
         self.type = ChatType.UNDEFINED
+        self.spam_detection = True
 
     def get_user_by_id(self, _id: int) -> Optional[User]:
         result = next(filter(lambda user: user.id == _id, self.users), None)
@@ -69,7 +70,8 @@ class Chat:
             "pinned_message_id": self.pinned_message_id,
             "events": [event.serialize() for event in self.events],
             "users": [user.serialize() for user in self.users],
-            "title": self.title
+            "title": self.title,
+            "spam_detection": self.spam_detection
         }
 
         return serialized
@@ -88,6 +90,7 @@ class Chat:
         chat.events = [Event.deserialize(event_json_object) for event_json_object in json_object.get("events", [])]
         chat.users = {User.deserialize(user_json_object) for user_json_object in json_object.get("users", [])}
         chat.title = json_object.get("title", None)
+        chat.spam_detection = json_object.get("spam_detection", True)
 
         return chat
 

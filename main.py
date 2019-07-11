@@ -55,6 +55,8 @@ def start(bot_token: str):
     # chat_admin
     dispatcher.add_handler(CommandHandler("reset", bot.reset))
     dispatcher.add_handler(CommandHandler("delete_chat", bot.delete_chat))
+    dispatcher.add_handler(CommandHandler("enable_spam_detection", bot.enable_spam_detection))
+    dispatcher.add_handler(CommandHandler("disable_spam_detection", bot.disable_spam_detection))
     dispatcher.add_handler(CommandHandler("get_data", bot.get_data))
     dispatcher.add_handler(CommandHandler("add_insult", bot.add_insult, pass_args=True))
     dispatcher.add_handler(CommandHandler("mute", bot.mute, pass_args=True))

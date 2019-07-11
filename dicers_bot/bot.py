@@ -426,7 +426,8 @@ class Bot:
         user: User = chat.get_user_by_id(update.effective_user.id)
 
         try:
-            self.check_for_spam(user, chat)
+            if chat.spam_detection:
+                self.check_for_spam(user, chat)
         except Exception as e:
             sentry_sdk.capture_exception()
             self.logger.exception(e, exc_info=True)
@@ -474,12 +475,25 @@ class Bot:
 
         self.logger.info(f"A new member ({update.effective_user}) has joined this chat ({chat.id})")
 
-        if not update.effective_message:
-            return
-
         for member in update.effective_message.new_chat_members:
             if member.id != self.updater.bot.id:
                 update.effective_message.reply_text("Welcome, fellow alcoholic.")
+
+    @Command(chat_admin=True)
+    def enable_spam_detection(self, update: Update, context: CallbackContext) -> Message:
+        chat = context.chat_data["chat"]
+        chat.spam_detection = True
+        self.logger.debug("Enabled spam detection")
+
+        return update.message.reply_text("Spam detection has been enabled")
+
+    @Command(chat_admin=True)
+    def disable_spam_detection(self, update: Update, context: CallbackContext) -> Message:
+        chat = context.chat_data["chat"]
+        chat.spam_detection = False
+        self.logger.debug("Disabled spam detection")
+
+        return update.message.reply_text("Spam detection has been disabled")
 
     @Command()
     def status(self, update: Update, context: CallbackContext) -> Message:
