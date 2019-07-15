@@ -384,7 +384,7 @@ class Chat:
         try:
             self.attend_callback.edit_message_text(text=self._build_attend_message())
             self.unpin_message()
-        except TelegramError as e:
+        except (TelegramError, AttributeError) as e:
             self.logger.error(e)
             result = False
 
