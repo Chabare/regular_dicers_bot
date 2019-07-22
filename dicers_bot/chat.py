@@ -170,13 +170,19 @@ class Chat:
                 text=str(i),
                 callback_data="dice_{}".format(str(i))) for i in range(4, 7)
         ], [
-
             InlineKeyboardButton(
                 text="Normal",
                 callback_data="dice_-1"),
             InlineKeyboardButton(
                 text="Jumbo",
                 callback_data="dice_+1")
+        ], [
+            InlineKeyboardButton(
+                text="Alkoholfrei",
+                callback_data="dice_non-alcoholic"),
+            InlineKeyboardButton(
+                text="Vernüntig",
+                callback_data="dice_alcoholic")
         ]])
 
     def update_attend_message(self) -> None:
@@ -278,7 +284,7 @@ class Chat:
             self.logger.info("price message has attendees")
             attendees = sorted(attendees, key=lambda user: user.name.lower())
             message += ", ".join(
-                ["{} ({}{})".format(attendee.name, attendee.roll, "+1" if attendee.jumbo else "") for attendee in
+                ["{} ({}{}{})".format(attendee.name, attendee.roll, "+1" if attendee.jumbo else "", "" if attendee.alcoholic else " 💔") for attendee in
                  attendees])
 
             rolls = [(attendee.roll + 1 if attendee.jumbo else attendee.roll + 0) for attendee in attendees if

@@ -270,6 +270,8 @@ class Bot:
         data = re.match("dice_(.*)", callback.data).groups()[0]
         if data in map(str, range(1, 7)):
             attendee.set_roll(int(data))
+        elif "alcoholic" in data:
+            attendee.set_alcoholic("alcoholic" == data)
         else:
             attendee.set_jumbo(data == "+1")
 
