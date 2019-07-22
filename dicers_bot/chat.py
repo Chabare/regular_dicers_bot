@@ -181,7 +181,7 @@ class Chat:
                 text="Alkoholfrei",
                 callback_data="dice_non-alcoholic"),
             InlineKeyboardButton(
-                text="Vernüntig",
+                text="Vernünftig",
                 callback_data="dice_alcoholic")
         ]])
 
