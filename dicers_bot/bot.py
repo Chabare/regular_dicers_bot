@@ -10,6 +10,7 @@ from typing import Any, List, Optional, Dict, Iterable, Set, Tuple, Sequence
 
 import sentry_sdk
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
+from telegram.error import BadRequest
 from telegram.ext import CallbackContext, Updater
 
 from .calendar import Calendar
