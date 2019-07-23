@@ -13,6 +13,7 @@ class User:
         self.name = name
         self.roll = -1
         self.jumbo = False
+        self.alcoholic = True
         self.id = _id
         self._internal = chat_user
         self.muted = False
@@ -24,6 +25,9 @@ class User:
 
     def set_jumbo(self, jumbo: bool) -> None:
         self.jumbo = jumbo
+
+    def set_alcoholic(self, alcoholic: bool) -> None:
+        self.alcoholic = alcoholic
 
     # def __getattr__(self, item):
     #     return getattr(self.internal, item)
