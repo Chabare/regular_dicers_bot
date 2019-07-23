@@ -51,6 +51,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("show_dice", bot.show_dice))
     dispatcher.add_handler(CommandHandler("users", bot.show_users))
     dispatcher.add_handler(CommandHandler("price_stats", bot.price_stats))
+    dispatcher.add_handler(CommandHandler("set_cocktail", bot.set_cocktail))
 
     # chat_admin
     dispatcher.add_handler(CommandHandler("reset", bot.reset))
