@@ -646,3 +646,14 @@ class Bot:
             else:
                 update.effective_message.reply_text(f"Failed to unmute {username}.")
 
+    @Command(chat_admin=True)
+    def set_cocktail(self, update: Update, context: CallbackContext):
+        if not context.args:
+            message = "You have to provide a cocktail name."
+            self.logger.warning("No arguments have been provided, don't execute `set_cocktail`.")
+            return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
+        drink_name: str = " ".join(context.args[:])
+        user: User = context.user_data["user"]
+
+        user.drink = drink_name
