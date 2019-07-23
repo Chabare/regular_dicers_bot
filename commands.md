@@ -18,4 +18,5 @@ get_data - Returns the state representation for the current chat as a file ({cha
 add_insult - Adds an insult which is sent, when someone is not attending ({username} is replaced with the name of the user)
 mute - (<user.first_name> [<timeout in minutes>] [<reason>]) Mutes the `user` for the given timeframe (15 minutes if none is given) (admin command)
 unmute - (<user.first_name>) Unmutes the provided `user` (admin command)
+set_cocktail - (<drink_name>) Sets the cocktail name for the current event (per user)
 ```
