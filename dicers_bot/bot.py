@@ -618,8 +618,18 @@ class Bot:
             self.logger.warning("No arguments have been provided, don't execute `unmute`.")
             return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
-        username = context.args[0]
-        chat = context.chat_data["chat"]
+        username: str = context.args[0].strip()
+        chat: Chat = context.chat_data["chat"]
+
+        # @all is an unusable username
+        if username == "@all":
+            for user in chat.users:
+                try:
+                    self.unmute_user(chat.id, user)
+                except BadRequest:
+                    self.logger.error(f"Failed to unmute user ({user})")
+
+            return
 
         try:
             user = next(filter(lambda x: x.name == username, chat.users))
@@ -628,7 +638,8 @@ class Bot:
             self.logger.warn(f"Couldn't find user {username} in users for chat {update.message.chat_id}", exc_info=True)
             update.effective_message.reply_text(f"Can't unmute {username} (not found in current chat).")
         else:
-            if self.unmute_user(update.effective_message.chat_id, user):
+            if self.unmute_user(chat.id, user):
                 update.effective_message.reply_text(f"Successfully unmuted {username}.")
             else:
                 update.effective_message.reply_text(f"Failed to unmute {username}.")
+
