@@ -64,6 +64,7 @@ class User:
         user.muted = json.get("muted", False)
         user.roll = int(json.get("roll", -1))
         user.jumbo = bool(json.get("jumbo", False))
+        user.alcoholic = bool(json.get("alcoholic", True))
 
         return user
 
@@ -73,7 +74,8 @@ class User:
             "roll": self.roll,
             "jumbo": self.jumbo,
             "muted": self.muted,
-            "id": self.id
+            "id": self.id,
+            "alcoholic": self.alcoholic
         }
 
     def get_attended_events(self, events: List[Event]) -> Iterator[Event]:
