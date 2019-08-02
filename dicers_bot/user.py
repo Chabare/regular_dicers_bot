@@ -19,6 +19,7 @@ class User:
         self.muted = False
         self.messages: Set[Message] = set()
         self.spamming = False
+        self.drink = None
 
     def set_roll(self, roll: int) -> None:
         self.roll = roll
@@ -65,6 +66,7 @@ class User:
         user.roll = int(json.get("roll", -1))
         user.jumbo = bool(json.get("jumbo", False))
         user.alcoholic = bool(json.get("alcoholic", True))
+        user.drink = json.get("drink_name", None)
 
         return user
 
@@ -75,7 +77,8 @@ class User:
             "jumbo": self.jumbo,
             "muted": self.muted,
             "id": self.id,
-            "alcoholic": self.alcoholic
+            "alcoholic": self.alcoholic,
+            "drink_name": self.drink
         }
 
     def get_attended_events(self, events: List[Event]) -> Iterator[Event]:
