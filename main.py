@@ -16,7 +16,7 @@ def schedule_jobs(bot: Bot, updater: Updater):
     today: datetime = datetime.today()
     additional_reset_time = today.replace(hour=13, minute=30)
     attend_time = today.replace(hour=14, minute=0)
-    dice_time = today.replace(hour=20, minute=30)
+    dice_time = today.replace(hour=21, minute=0)
     reset_time = today.replace(hour=0, minute=0)
 
     logger.info("Set schedule")
