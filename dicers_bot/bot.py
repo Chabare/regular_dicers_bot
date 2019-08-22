@@ -646,7 +646,7 @@ class Bot:
             else:
                 update.effective_message.reply_text(f"Failed to unmute {username}.")
 
-    @Command(chat_admin=True)
+    @Command()
     def set_cocktail(self, update: Update, context: CallbackContext):
         if not context.args:
             message = "You have to provide a cocktail name."
