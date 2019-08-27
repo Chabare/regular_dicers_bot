@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional, Set, List, Dict, Any
+from typing import Optional, Set, List, Dict, Any, Callable
 
 from telegram import Bot as TBot, Update
 from telegram import Chat as TChat
@@ -221,17 +221,22 @@ class Chat:
         attendees = self.current_event.attendees
         absentees = self.current_event.absentees
 
-        user_string = ", ".join(sorted([user.name for user in attendees]))
+        condition: Callable[[Any], bool] = lambda _: True
+        sind_die_kurzen_dabei: bool = len([user for user in attendees if user.name in ["nadine", "tashina"]]) == 2
+
+        if sind_die_kurzen_dabei:
+            condition: Callable[[str], bool] = lambda username: username not in ["nadine", "tashina"]
+
+        user_string = ", ".join(sorted([user.name for user in attendees if condition(user.name)]))
+
+        if sind_die_kurzen_dabei:
+            user_string += " #dieKurzenSindDabei"
+
         if user_string:
             if len(attendees) == len(self.users):
                 message += "Alle 🎉"
             else:
                 message += user_string
-
-            sind_die_kurzen_dabei: bool = all(kurze in user_string.lower() for kurze in ["nadine", "tashina"])
-            if sind_die_kurzen_dabei:
-                message += " #dieKurzenSindDabei"
-
         else:
             message += "Niemand :("
         if absentees:
