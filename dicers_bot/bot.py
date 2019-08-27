@@ -13,6 +13,7 @@ from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, Updater
 
+from dicers_bot.user import User
 from .calendar import Calendar
 from .chat import Chat, User, Keyboard
 from .config import Config
@@ -459,7 +460,8 @@ class Bot:
         if chat.current_event:
             events += [chat.current_event]
 
-        for user in chat.users:
+        sorted_users: List[User] = sorted(chat.users, key=lambda _user: _user.name)
+        for user in sorted_users:
             attendance_count = 0
             for event in events:
                 if user in event.attendees:
