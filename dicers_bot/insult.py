@@ -2,6 +2,7 @@ import random
 
 from typing import List
 
+
 class Insult:
     FILENAME = "insults"
     cache = list()
@@ -12,7 +13,7 @@ class Insult:
     @staticmethod
     def _read_all() -> List["Insult"]:
         with open(Insult.FILENAME) as file:
-            insults = [Insult(line.strip()) for line in file.readlines() if line]
+            insults = [Insult(line.strip()) for line in file.readlines() if line.strip()]
             Insult.cache = insults
 
             return insults
