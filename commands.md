@@ -10,7 +10,7 @@ reset_all - Reset all keyboards and the current event for all chats (admin comma
 status - Returns the chat id ([{id}])
 version - Returns the SHA1 of the current commit
 server_time - Time on the server (debugging purposes)
-users - Shows every user in the chat who has participated in the chat at some time (format: <Name | Roll (jumbo) | muted>)
+users - Shows every user in the chat who has participated in the chat at some time (format: `str(user} ({attendance_count}/{#chat.events})`)
 disable_spam_detection - Disable spam detection (admin command)
 enable_spam_detection - Enable spam detection (admin command)
 price_stats - Shows every user with his associated price statistics ({user}: {attendance}/{price} = {attendance/price})
