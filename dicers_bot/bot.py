@@ -9,18 +9,18 @@ from threading import Timer
 from typing import Any, List, Optional, Dict, Iterable, Set, Tuple, Sequence
 
 import sentry_sdk
+import telegram
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, Updater
 
-from dicers_bot.user import User
 from .calendar import Calendar
 from .chat import Chat, User, Keyboard
 from .config import Config
 from .decorators import Command
 from .event import Event
-from .logger import create_logger
 from .insult import Insult
+from .logger import create_logger
 
 
 def grouper(iterable, n, fillvalue=None) -> Iterable[Tuple[Any, Any]]:
@@ -203,7 +203,9 @@ class Bot:
                 insult = Insult.random().text
                 if "{username}" in insult:
                     insult = insult.replace("{username}", user.name)
-                self.mute_user(chat.id, user, timedelta(hours=1), reason=insult)
+
+                time_to_mute: timedelta = datetime.now().replace(hour=21, minute=0, second=0) - datetime.now()
+                self.mute_user(chat.id, user, time_to_mute, reason=insult)
 
         attendees = chat.current_event.attendees
 
@@ -594,7 +596,8 @@ class Bot:
         if not context.args:
             message = "Please provide a user and an optional timeout (`/mute <user> [<timeout in minutes>] [<reason>]`)"
             self.logger.warning("No arguments have been provided, don't execute `mute`.")
-            return self.updater.bot.send_message(chat_id=update.message.chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
+            return self.updater.bot.send_message(chat_id=update.message.chat_id, text=message,
+                                                 parse_mode=ParseMode.MARKDOWN)
 
         username = context.args[0]
         minutes = 15
