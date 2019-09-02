@@ -266,6 +266,9 @@ class Bot:
             self.logger.debug("User {} is not in attendees list".format(user.name))
             message = f"You ({user.name}) are not attending this event, you can't roll a dice yet."
             self.send_message(chat_id=chat.id, text=message)
+
+            self.mute_user(chat.id, user, timedelta(hours=1), reason="I fucking told you")
+
             callback.answer()
             return
 
