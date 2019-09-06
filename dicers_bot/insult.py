@@ -11,7 +11,7 @@ class Insult:
         self.text = text
 
     @staticmethod
-    def _read_all() -> List["Insult"]:
+    def read_all() -> List["Insult"]:
         with open(Insult.FILENAME) as file:
             insults = [Insult(line.strip()) for line in file.readlines() if line.strip()]
             Insult.cache = insults
@@ -20,14 +20,14 @@ class Insult:
 
     @classmethod
     def random(cls) -> "Insult":
-        insults = Insult._read_all()
+        insults = Insult.read_all()
 
         return insults[random.randint(0, len(insults) - 1)]
 
     @staticmethod
     def add(text: str) -> bool:
         if not Insult.cache:
-            Insult.cache = Insult._read_all()
+            Insult.cache = Insult.read_all()
 
         if text not in [insult.text for insult in Insult.cache]:
             Insult.cache.append(Insult(text))
