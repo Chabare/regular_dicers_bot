@@ -82,16 +82,19 @@ class Command:
                 else:
                     message = f"Chat {chat} is not allowed to perform this action."
                     log.warning(message)
-                    clazz.mute_user(chat_id=current_chat.id, user=current_user, until_date=timedelta(minutes=15), reason=message)
+                    clazz.mute_user(chat_id=current_chat.id, user=current_user, until_date=timedelta(minutes=15),
+                                    reason=message)
                     exception = PermissionError()
 
             if self.chat_admin:
                 if current_chat.type == chat.ChatType.PRIVATE:
                     log.debug("Execute function due to coming from a private chat")
                 elif current_user in current_chat.administrators():
-                    log.debug(f"User ({current_user.name}) is a chat admin and therefore allowed to perform this action, executing")
+                    log.debug(
+                        f"User ({current_user.name}) is a chat admin and therefore allowed to perform this action, executing")
                 else:
-                    log.error(f"User ({current_user.name}) isn't a chat_admin and is not allowed to perform this action.")
+                    log.error(
+                        f"User ({current_user.name}) isn't a chat_admin and is not allowed to perform this action.")
                     exception = PermissionError()
 
             if update.effective_message:
@@ -108,7 +111,8 @@ class Command:
                 return result
             except PermissionError:
                 if update.effective_message:
-                    update.effective_message.reply_text(f"You ({current_user.name}) are not allowed to perform this action.")
+                    update.effective_message.reply_text(
+                        f"You ({current_user.name}) are not allowed to perform this action.")
             except Exception as e:
                 # Log for debugging purposes
                 log.error(str(e), exc_info=True)

@@ -9,7 +9,6 @@ from threading import Timer
 from typing import Any, List, Optional, Dict, Iterable, Set, Tuple, Sequence
 
 import sentry_sdk
-import telegram
 from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, Updater
