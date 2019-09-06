@@ -52,6 +52,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("users", bot.show_users))
     dispatcher.add_handler(CommandHandler("price_stats", bot.price_stats))
     dispatcher.add_handler(CommandHandler("set_cocktail", bot.set_cocktail))
+    dispatcher.add_handler(CommandHandler("add_insult", bot.add_insult, pass_args=True))
 
     # chat_admin
     dispatcher.add_handler(CommandHandler("reset", bot.reset))
@@ -59,7 +60,6 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("enable_spam_detection", bot.enable_spam_detection))
     dispatcher.add_handler(CommandHandler("disable_spam_detection", bot.disable_spam_detection))
     dispatcher.add_handler(CommandHandler("get_data", bot.get_data))
-    dispatcher.add_handler(CommandHandler("add_insult", bot.add_insult, pass_args=True))
     dispatcher.add_handler(CommandHandler("mute", bot.mute, pass_args=True))
     dispatcher.add_handler(CommandHandler("unmute", bot.unmute, pass_args=True))
 
