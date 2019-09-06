@@ -668,3 +668,12 @@ class Bot:
         user: User = context.user_data["user"]
 
         user.drink = drink_name
+
+    @Command()
+    def list_insults(self, update: Update, context: CallbackContext):
+        message = "\n".join([f"`{insult.text}`" for insult in Insult.read_all()])
+
+        if not message:
+            message = "There are no insults yet"
+
+        update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
