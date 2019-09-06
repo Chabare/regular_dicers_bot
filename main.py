@@ -53,6 +53,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("price_stats", bot.price_stats))
     dispatcher.add_handler(CommandHandler("set_cocktail", bot.set_cocktail))
     dispatcher.add_handler(CommandHandler("add_insult", bot.add_insult, pass_args=True))
+    dispatcher.add_handler(CommandHandler("list_insults", bot.list_insults))
 
     # chat_admin
     dispatcher.add_handler(CommandHandler("reset", bot.reset))
