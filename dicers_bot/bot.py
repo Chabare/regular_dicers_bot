@@ -682,3 +682,11 @@ class Bot:
         chat: Chat = context.chat_data["chat"]
 
         self.updater.bot.send_photo(chat.id, "https://lh3.googleusercontent.com/MoijEYIHHzGPbQ8qotmF0zLOIroLpgcaKTQ2--j-reu8Mc1NsTiPVB3S28oAFWo04LzwFb55TDTRSWsfR83a31NyMuS-9amZGt3qUmP9vswCFLQReKuP0G0z3m4ZijZSm_6_JEz_ix9t77vtd6qOZe5vkPObO8u8BgzOwrlKvmomOr7jmDuc3rapJdUOY5zZCp5pSf-58ZsoviBw5fliMy8N4QNPrygv6274dqBJVk4Fs-xjBhqmxGOApk9igv9H-J4wx-DDLsGMwSl-T4uORbdISUUMIOsZffw8TifSMsPkSMGb9GN720FJYgFyGr1tkwdC_YiuInYfs1Za30EBVWLkE2Mw9O4smX60_DDWp6RQlWCfx1qOlLWa1gP0dZZ4_5VCRxfbXH0zL-m4I0hPxtmJtBKcHQt1kn68jaXlHUlpUgl2MHvyamz4TWQUGOD1It-aShK6twXsQ-CQ-KxIs5Rc_fEQapVV5zqHouE4jVZdUoPdrHg0TAkeZV7kJItFn8uq8s51gjz3hoawwQVf6tmI4cyK_h5a1RAQFJtLl3kNBMvHmXbNOFr1wF8ei5eIqKFPK6Za5k-5qQCSubxQvwBD4Bb4wmYKeHlGmfakSV8Q7d9083ecbYcCVeqFZP_IZE_IKrWJphlfcOSGzfTznWERRqv1dAcBY8iyu7U7cSDIi53gayT-2jk=w1007-h1342-no")
+
+    @Command()
+    def handle_unknown_command(self, update: Update, context: CallbackContext):
+        user: User = context.user_data["user"]
+        chat: Chat = context.chat_data["chat"]
+
+        reason = "This is not a valid command fuckwit."
+        self.mute_user(chat_id=chat.id, user=user, until_date=timedelta(minutes=15), reason=reason)

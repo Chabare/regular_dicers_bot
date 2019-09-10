@@ -80,6 +80,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CallbackQueryHandler(bot.handle_dice_callback, pattern="dice_(.*)"))
 
     # MessageHandler
+    dispatcher.add_handler(MessageHandler(Filters.command, bot.handle_unknown_command))
     dispatcher.add_handler(
         MessageHandler(Filters.text, bot.handle_message))
     dispatcher.add_handler(
