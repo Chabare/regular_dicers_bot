@@ -120,7 +120,7 @@ class Bot:
             result: bool = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
                                                                  **kwargs)
             if not kwargs.get("can_send_messages", False):
-                datestring: str = str(until_date).rsplit(".")[-1]  # str(timedelta) -> [D day[s], ][H]H:MM:SS[.UUUUUU]
+                datestring: str = str(until_date).rsplit(".")[0]  # str(timedelta) -> [D day[s], ][H]H:MM:SS[.UUUUUU]
                 message = f"{user.name} has been restricted for {datestring}."
                 if reason:
                     message += f"\nReason: {reason}"
