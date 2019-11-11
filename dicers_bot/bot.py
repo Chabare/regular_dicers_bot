@@ -212,7 +212,11 @@ class Bot:
         attends = callback.data == "attend_True"
         if attends:
             chat.current_event.add_attendee(user)
-            self.calendar.create()
+
+            if chat.current_event.remote_created:
+                self.calendar.create()
+                chat.current_event.remote_created = True
+
             self.unmute_user(chat.id, user)
         else:
             if user in attendees and user.roll != -1:
