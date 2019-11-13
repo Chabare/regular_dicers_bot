@@ -13,6 +13,7 @@ from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, Updater
 
+from . import partyamt
 from .calendar import Calendar
 from .chat import Chat, User, Keyboard
 from .config import Config
@@ -212,7 +213,12 @@ class Bot:
         attends = callback.data == "attend_True"
         if attends:
             chat.current_event.add_attendee(user)
-            self.calendar.create()
+
+            if chat.current_event.remote_created:
+                self.calendar.create()
+                partyamt.add_event()
+                chat.current_event.remote_created = True
+
             self.unmute_user(chat.id, user)
         else:
             if user in attendees and user.roll != -1:
