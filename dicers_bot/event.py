@@ -16,6 +16,7 @@ class Event:
         self.attendees: Set[user.User] = set()
         self.absentees: Set = set()
         self.logger.info("Created event for {}".format(self.timestamp))
+        self.remote_created = False
 
     def add_absentee(self, user) -> None:
         self.logger.info("Add absentee {} to event".format(user))
