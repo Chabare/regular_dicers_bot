@@ -125,7 +125,7 @@ class Bot:
                 if reason:
                     message += f"\nReason: {reason}"
                 self.updater.bot.send_message(chat_id=chat_id,
-                                              text=message)
+                                              text=message, disable_notification=True)
         except TelegramError as e:
             if e.message == "Can't demote chat creator" and not kwargs.get("can_send_messages", False):
                 message = "Sadly, user {} couldn't be restricted due to: `{}`. Shame on {}".format(user.name,
