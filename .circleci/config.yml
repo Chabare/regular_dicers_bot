@@ -34,7 +34,7 @@ jobs:
       - image: byrnedo/alpine-curl:latest
     # Update server image
     steps:
-      - run: curl -L "http:///18.184.104.7?key=$UPDATE_KEY"
+      - run: curl -L "http:///18.184.104.7:8080?key=$UPDATE_KEY"
 
   markdown_lint:
     docker:
