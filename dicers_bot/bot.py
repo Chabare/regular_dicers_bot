@@ -460,7 +460,10 @@ class Bot:
 
     @Command()
     def handle_left_chat_member(self, update: Update, context: CallbackContext) -> None:
+        chat: Chat = context.chat_data["chat"]
+
         if update.effective_message.left_chat_member.id != self.updater.bot.id:
+            chat.users.remove(User("", update.effective_message.left_chat_member.id))
             update.effective_message.reply_text("Bye bye birdie")
 
     def set_state(self, state: Dict[str, Any]) -> None:
