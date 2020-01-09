@@ -248,7 +248,7 @@ class Chat:
 
         if not_voted:
             self.logger.debug("there are people who have not yet voted")
-            message += "\nincoming warnings: " + ", ".join([user.name for user in not_voted])
+            message += "\nKeine Antwort: " + ", ".join([user.name for user in not_voted])
         else:
             self.logger.debug("everyone has voted")
 
