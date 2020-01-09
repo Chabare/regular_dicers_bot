@@ -463,6 +463,7 @@ class Bot:
         chat: Chat = context.chat_data["chat"]
 
         if update.effective_message.left_chat_member.id != self.updater.bot.id:
+            # This works because we defined `__eq__` ourselves (other.id == self.id)
             chat.users.remove(User("", update.effective_message.left_chat_member.id))
             update.effective_message.reply_text("Bye bye birdie")
 
