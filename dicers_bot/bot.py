@@ -9,7 +9,7 @@ from threading import Timer
 from typing import Any, List, Optional, Dict, Iterable, Set, Tuple, Sequence
 
 import sentry_sdk
-from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message
+from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message, ChatPermissions
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, Updater
 
@@ -114,13 +114,12 @@ class Bot:
 
         return update.effective_message.reply_text(text="You've been unregistered as the main chat")
 
-    def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, reason: str = None,
-                             **kwargs) -> bool:
+    def set_user_restriction(self, chat_id: str, user: User, until_date: timedelta, permissions: ChatPermissions,
+                             reason: str = None) -> bool:
         timestamp: int = int((datetime.now() + until_date).timestamp())
         try:
-            result: bool = self.updater.bot.restrict_chat_member(chat_id, user.id, until_date=timestamp,
-                                                                 **kwargs)
-            if not kwargs.get("can_send_messages", False):
+            result: bool = self.updater.bot.restrict_chat_member(chat_id, user.id, permissions, until_date=timestamp)
+            if not permissions.can_send_messages:
                 datestring: str = str(until_date).rsplit(".")[0]  # str(timedelta) -> [D day[s], ][H]H:MM:SS[.UUUUUU]
                 message = f"{user.name} has been restricted for {datestring}."
                 if reason:
@@ -128,7 +127,7 @@ class Bot:
                 self.updater.bot.send_message(chat_id=chat_id,
                                               text=message, disable_notification=True)
         except TelegramError as e:
-            if e.message == "Can't demote chat creator" and not kwargs.get("can_send_messages", False):
+            if e.message == "Can't demote chat creator" and not permissions.can_send_messages:
                 message = "Sadly, user {} couldn't be restricted due to: `{}`. Shame on {}".format(user.name,
                                                                                                    e.message,
                                                                                                    user.name)
@@ -141,12 +140,12 @@ class Bot:
 
     def unmute_user(self, chat_id: str, user: User) -> bool:
         result = False
+        permissions = ChatPermissions(can_send_messages=True, can_send_media_messages=True,
+                                      can_send_other_messages=True, can_add_web_page_previews=True)
 
         try:
             # if self.updater.bot.promote_chat_member(chat_id, user.id, can_post_messages=True):
-            if self.set_user_restriction(chat_id, user, timedelta(minutes=0), can_send_messages=True,
-                                         can_send_media_messages=True, can_send_other_messages=True,
-                                         can_add_web_page_previews=True):
+            if self.set_user_restriction(chat_id, user, timedelta(minutes=0), permissions):
                 user.muted = False
                 result = True
             else:
@@ -160,9 +159,10 @@ class Bot:
         if user.muted:
             return True
 
+        permissions = ChatPermissions(can_send_messages=False)
         result = False
         self.logger.info(f"Reason for muting: {reason}")
-        if self.set_user_restriction(chat_id, user, until_date=until_date, reason=reason, can_send_messages=False):
+        if self.set_user_restriction(chat_id, user, until_date=until_date, reason=reason, permissions=permissions):
             user.muted = True
             result = True
 
@@ -206,7 +206,7 @@ class Bot:
                     insult = insult.replace("{username}", user.name)
 
                 time_to_mute: timedelta = datetime.now().replace(hour=21, minute=0, second=0) - datetime.now()
-                    
+
                 if time_to_mute.days >= 0:
                     self.mute_user(chat.id, user, time_to_mute, reason=insult)
 
