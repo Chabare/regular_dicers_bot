@@ -502,11 +502,14 @@ class Bot:
     def new_member(self, update: Update, context: CallbackContext) -> None:
         chat = context.chat_data["chat"]
 
-        self.logger.info(f"A new member ({update.effective_user}) has joined this chat ({chat.id})")
+        self.logger.info(f"New member(s) have joined this chat")
 
         for member in update.effective_message.new_chat_members:
             if member.id != self.updater.bot.id:
-                update.effective_message.reply_text("Welcome, fellow alcoholic.")
+                chat.users.add(User.from_tuser(member))
+                message = f"Welcome, fellow alcoholic [{member.first_name}](tg://user?id={member.id})"
+                update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
 
     @Command(chat_admin=True)
     def enable_spam_detection(self, update: Update, context: CallbackContext) -> Message:
