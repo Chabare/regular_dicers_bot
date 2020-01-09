@@ -2,7 +2,6 @@ graphqlclient
 asn1crypto==0.24.0
 cachetools==2.1.0
 certifi==2018.8.24
-cffi==1.11.5
 cryptography==2.3.1
 future==0.16.0
 google-api-python-client==1.7.4
