@@ -358,10 +358,14 @@ class Bot:
 
         return result
 
-    def check_for_spam(self, user: User, chat: Chat) -> None:
+    def check_for_spam(self, user: User, chat: Chat) -> SpamType:
         user_chat_messages = [message for message in user.messages if message.chat_id == chat.id]
 
-        spam_type = self._check_user_spam(user_chat_messages, self.config.get("spam", {}))
+        try:
+            spam_type = self._check_user_spam(user_chat_messages, self.config.get("spam", {}))
+        except IndexError:
+            spam_type = SpamType.NONE
+
         spam_type_message = ""
         timeout = timedelta(seconds=30)
         if spam_type == SpamType.CONSECUTIVE:
@@ -383,6 +387,8 @@ class Bot:
                 self.mute_user(chat.id, user, timeout, reason=spam_type_message)
         else:
             user.spamming = False
+
+        return spam_type
 
     @staticmethod
     def _check_user_spam(user_messages: List[Message], spam_config: Dict[str, int]) -> SpamType:
