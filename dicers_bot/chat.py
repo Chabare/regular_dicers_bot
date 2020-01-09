@@ -220,7 +220,7 @@ class Chat:
         message = "Wer ist dabei?" + "\nBisher: "
         attendees = self.current_event.attendees
         absentees = self.current_event.absentees
-        not_voted = self.users.difference(attendees.union(absentees))
+        not_voted = sorted(self.users.difference(attendees.union(absentees)), key=lambda user: user.name)
 
         condition: Callable[[Any], bool] = lambda _: True
         sind_die_kurzen_dabei: bool = len([user for user in attendees if user.name in ["nadine", "tashina"]]) == 2
