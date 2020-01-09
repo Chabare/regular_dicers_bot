@@ -220,6 +220,7 @@ class Chat:
         message = "Wer ist dabei?" + "\nBisher: "
         attendees = self.current_event.attendees
         absentees = self.current_event.absentees
+        not_voted = self.users.difference(attendees.union(absentees))
 
         condition: Callable[[Any], bool] = lambda _: True
         sind_die_kurzen_dabei: bool = len([user for user in attendees if user.name in ["nadine", "tashina"]]) == 2
@@ -240,10 +241,16 @@ class Chat:
         else:
             message += "Niemand :("
         if absentees:
-            self.logger.info("attend message has absentees")
+            self.logger.debug("attend message has absentees")
             message += "\nNicht dabei: " + ", ".join([user.name for user in absentees])
         else:
-            self.logger.info("No absentees for event")
+            self.logger.debug("No absentees for event")
+
+        if not_voted:
+            self.logger.debug("there are people who have not yet voted")
+            message += "\nincoming warnings: " + ", ".join([user.name for user in not_voted])
+        else:
+            self.logger.debug("everyone has voted")
 
         self.logger.info("Successfully built the attend message: %s", message)
         return message
