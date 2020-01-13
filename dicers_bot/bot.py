@@ -463,9 +463,13 @@ class Bot:
         chat: Chat = context.chat_data["chat"]
 
         if update.effective_message.left_chat_member.id != self.updater.bot.id:
-            # This works because we defined `__eq__` ourselves (other.id == self.id)
-            chat.users.remove(User("", update.effective_message.left_chat_member.id))
-            update.effective_message.reply_text("Bye bye birdie")
+            try:
+                user: User = [user for user in chat.users if user.id == update.effective_message.left_chat_member_id][0]
+            except IndexError:
+                self.logger.error("Couldn't find user in chat")
+            else:
+                chat.users.remove(user)
+                update.effective_message.reply_text("Bye bye birdie")
 
     def set_state(self, state: Dict[str, Any]) -> None:
         self.state = state
@@ -509,7 +513,6 @@ class Bot:
                 chat.users.add(User.from_tuser(member))
                 message = f"Welcome, fellow alcoholic [{member.first_name}](tg://user?id={member.id})"
                 update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
-
 
     @Command(chat_admin=True)
     def enable_spam_detection(self, update: Update, context: CallbackContext) -> Message:
