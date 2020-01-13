@@ -464,7 +464,7 @@ class Bot:
 
         if update.effective_message.left_chat_member.id != self.updater.bot.id:
             try:
-                user: User = [user for user in chat.users if user.id == update.effective_message.left_chat_member_id][0]
+                user: User = [user for user in chat.users if user.id == update.effective_message.left_chat_member.id][0]
             except IndexError:
                 self.logger.error("Couldn't find user in chat")
             else:
