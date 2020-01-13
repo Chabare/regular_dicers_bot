@@ -64,6 +64,7 @@ def start(bot_token: str):
     dispatcher.add_handler(CommandHandler("get_data", bot.get_data))
     dispatcher.add_handler(CommandHandler("mute", bot.mute, pass_args=True))
     dispatcher.add_handler(CommandHandler("unmute", bot.unmute, pass_args=True))
+    dispatcher.add_handler(CommandHandler("kick", bot.kick, pass_args=True))
 
     # main_admin
     dispatcher.add_handler(CommandHandler("remind_all", bot.remind_users))

@@ -21,5 +21,6 @@ unmute - (<user.first_name>) Unmutes the provided `user` (admin command)
 set_cocktail - (<drink_name>) Sets the cocktail name for the current event (per user)
 list_insults - Lists all insults
 jesus - Sends an image of alcohol jesus
+kick - (<user.first_name> [<reason>]) kicks a user from the chat
 ```
  

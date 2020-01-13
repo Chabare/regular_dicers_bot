@@ -715,3 +715,43 @@ class Bot:
 
         reason = "This is not a valid command fuckwit."
         self.mute_user(chat_id=chat.id, user=user, until_date=timedelta(minutes=15), reason=reason)
+
+    def kick_user(self, chat: Chat, user: User):
+        return self.updater.bot.kick_chat_member(chat_id=chat.id, user_id=user.id)
+
+    @Command()
+    def kick(self, update: Update, context: CallbackContext):
+        chat: Chat = context.chat_data["chat"]
+
+        if not context.args:
+            message = "Please provide a user and an optional reason(`/kick <user> [<reason>]`)"
+            self.logger.warning("No arguments have been provided, don't execute `kick`.")
+            return update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
+
+        username = context.args[0]
+        reason = " ".join(context.args[1:])
+
+        try:
+            user: User = next(filter(lambda x: x.name == username, chat.users))
+        except StopIteration:
+            sentry_sdk.capture_exception()
+            self.logger.warning(f"Couldn't find user {username} in users for chat {update.message.chat_id}", exc_info=True)
+            update.effective_message.reply_text(f"Can't mute {username} (not found in current chat).")
+        else:
+            try:
+                result = self.kick_user(chat, user)
+            except TelegramError as e:
+                message = f"Couldn't remove {user.name} from chat due to error ({e})"
+                self.logger.error(message)
+                update.message.reply_text(message)
+            else:
+                if result:
+                    message = f"{user.name} was kicked from chat"
+                    message += f" due to {reason}." if reason else "."
+                    self.logger.debug(message)
+                    chat.users.remove(user)
+                    update.message.reply_text(message)
+                else:
+                    message = f"{user.name} couldn't be kicked from chat"
+                    self.logger.warning(message)
+                    update.effective_message.reply_text(message)
