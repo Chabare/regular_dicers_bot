@@ -755,3 +755,12 @@ class Bot:
                     message = f"{user.name} couldn't be kicked from chat"
                     self.logger.warning(message)
                     update.effective_message.reply_text(message)
+
+    @Command()
+    def list_cocktails(self, update: Update, context: CallbackContext):
+        from . import cocktails
+        message = "\n".join([str(cocktail) for cocktail in cocktails.get_cocktails()])
+        if not message:
+            message = "Cocktails couldn't be fetched"
+
+        update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
