@@ -719,7 +719,7 @@ class Bot:
     def kick_user(self, chat: Chat, user: User):
         return self.updater.bot.kick_chat_member(chat_id=chat.id, user_id=user.id)
 
-    @Command()
+    @Command(chat_admin=True)
     def kick(self, update: Update, context: CallbackContext):
         chat: Chat = context.chat_data["chat"]
 
