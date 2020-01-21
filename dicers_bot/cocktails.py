@@ -1,9 +1,10 @@
 import json
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict, Optional, List
+from typing import Dict, List
 
 from graphqlclient import GraphQLClient
+
+from dicers_bot import create_logger
 
 
 @dataclass
@@ -38,8 +39,11 @@ class Cocktail:
         return " ".join([self.name, jumbo, alcoholic, ingredients])
 
 
-def get_cocktails() -> Optional[List[Cocktail]]:
-    client = GraphQLClient('http://localhost:8000/graphql')  # TODO
+def get_cocktails() -> List[Cocktail]:
+    logger = create_logger("get_cocktails")
+    logger.debug("Start")
+
+    client = GraphQLClient('https://rd-backend.carstens.tech/graphql')
 
     i = '''
     {
@@ -58,9 +62,12 @@ def get_cocktails() -> Optional[List[Cocktail]]:
     # noinspection PyBroadException
     try:
         result = json.loads(client.execute(i))
-        if result.get("errors"):
-            return None
+        errors = result.get("errors")
+        if errors:
+            logger.error(f"Couldn't fetch cocktails: {errors}")
+            return []
 
         return [Cocktail.from_dict(d) for d in result.get("data", {}).get("cocktails", [])]
-    except Exception as e:
-        pass
+    except Exception:
+        logger.error(f"Couldn't fetch cocktails", exc_info=True)
+        return []
