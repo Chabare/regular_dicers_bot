@@ -22,6 +22,6 @@ set_cocktail - (<drink_name>) Sets the cocktail name for the current event (per 
 list_insults - Lists all insults
 jesus - Sends an image of alcohol jesus
 kick - (<user.first_name> [<reason>]) kicks a user from the chat
-list_cocktails - List of available cocktails (<name> <jumbo> <alcoholic>)
+list_cocktails - List of available cocktails (<name> <jumbo> <alcoholic> (ingredients))
 ```
  
