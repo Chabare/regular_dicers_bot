@@ -9,13 +9,15 @@ from threading import Timer
 from typing import Any, List, Optional, Dict, Iterable, Set, Tuple, Sequence
 
 import sentry_sdk
-from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message, ChatPermissions
+from telegram import ParseMode, TelegramError, Update, CallbackQuery, Message, ChatPermissions, InputTextMessageContent, \
+    InlineQueryResultArticle
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, Updater
 
 from . import partyamt
 from .calendar import Calendar
 from .chat import Chat, ChatType, User, Keyboard
+from .cocktails import get_cocktails
 from .config import Config
 from .decorators import Command
 from .event import Event
@@ -690,9 +692,8 @@ class Bot:
             self.logger.warning("No arguments have been provided, don't execute `set_cocktail`.")
             return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
-        from . import cocktails
         argument = " ".join(context.args[:]).strip()
-        cocktails = cocktails.get_cocktails()
+        cocktails = get_cocktails()
         try:
             drink_id = int(argument)
             drink_name = [cocktail.name for cocktail in cocktails if cocktail.id == drink_id][0]
@@ -745,7 +746,8 @@ class Bot:
             user: User = next(filter(lambda x: x.name == username, chat.users))
         except StopIteration:
             sentry_sdk.capture_exception()
-            self.logger.warning(f"Couldn't find user {username} in users for chat {update.message.chat_id}", exc_info=True)
+            self.logger.warning(f"Couldn't find user {username} in users for chat {update.message.chat_id}",
+                                exc_info=True)
             update.effective_message.reply_text(f"Can't kick {username} (not found in current chat).")
         else:
             try:
@@ -780,9 +782,7 @@ class Bot:
 
             return None
 
-        from . import cocktails
-
-        messages = _split_messages([f"({cocktail.id}) {str(cocktail)}" for cocktail in cocktails.get_cocktails()])
+        messages = _split_messages([f"({cocktail.id}) {str(cocktail)}" for cocktail in get_cocktails()])
         if not messages:
             messages = ["Cocktails couldn't be fetched"]
 
@@ -791,6 +791,25 @@ class Bot:
             message = "\n".join(message)
             update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN, disable_notification=first)
             first = False
+
+    # @Command()
+    def handle_inline_query(self, update: Update, context: CallbackContext):
+        query = update.inline_query.query
+        cocktails = get_cocktails()
+
+        results = [
+            InlineQueryResultArticle(
+                id=cocktail.id,
+                title=cocktail.name,
+                input_message_content=InputTextMessageContent(
+                    f"/set_cocktail {cocktail.name}"
+                )
+            )
+            for cocktail in cocktails
+            if query.lower() in cocktail.name.lower()
+        ]
+
+        update.inline_query.answer(results)
 
 
 def _split_messages(lines):

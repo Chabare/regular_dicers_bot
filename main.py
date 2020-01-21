@@ -5,7 +5,7 @@ from datetime import datetime
 
 import sentry_sdk
 from telegram import TelegramError
-from telegram.ext import CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters
+from telegram.ext import CommandHandler, Updater, CallbackQueryHandler, MessageHandler, Filters, InlineQueryHandler
 
 from dicers_bot import Bot, create_logger
 
@@ -80,6 +80,9 @@ def start(bot_token: str):
     # CallbackQueryHandler
     dispatcher.add_handler(CallbackQueryHandler(bot.handle_attend_callback, pattern="attend_(.*)"))
     dispatcher.add_handler(CallbackQueryHandler(bot.handle_dice_callback, pattern="dice_(.*)"))
+
+    # InlineQueryHandler
+    dispatcher.add_handler(InlineQueryHandler(bot.handle_inline_query))
 
     # MessageHandler
     dispatcher.add_handler(MessageHandler(Filters.command, bot.handle_unknown_command))

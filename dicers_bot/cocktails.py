@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from graphqlclient import GraphQLClient
 
-from dicers_bot import create_logger
+from .logger import create_logger
 
 
 @dataclass
