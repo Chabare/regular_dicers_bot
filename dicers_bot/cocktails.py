@@ -41,7 +41,7 @@ class Cocktail:
         return " ".join([f"*{self.name}*", jumbo, alcoholic, ingredients])
 
 
-@lru_cache
+@lru_cache(maxsize=None)
 def get_cocktails() -> List[Cocktail]:
     logger = create_logger("get_cocktails")
     logger.debug("Start")
