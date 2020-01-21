@@ -768,9 +768,36 @@ class Bot:
             if not self.mute_user(chat.id, user, until_date=timedelta(minutes=15), reason=message):
                 update.effective_message.reply_text(message)
 
-        from . import cocktails
-        message = "\n".join([str(cocktail) for cocktail in cocktails.get_cocktails()])
-        if not message:
-            message = "Cocktails couldn't be fetched"
+            return None
 
-        return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        from . import cocktails
+
+        messages = _split_messages([str(cocktail) for cocktail in cocktails.get_cocktails()])
+        if not messages:
+            messages = ["Cocktails couldn't be fetched"]
+
+        first = True
+        for message in messages:
+            message = "\n".join(message)
+            update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN, disable_notification=first)
+            first = False
+
+
+def _split_messages(lines):
+    message_length = 1024
+    messages = []
+    current_length = 0
+    current_message = 0
+    for line in lines:
+        if len(messages) <= current_message:
+            messages.append([])
+
+        line_length = len(line)
+        if current_length + line_length < message_length:
+            current_length += line_length
+            messages[current_message].append(line)
+        else:
+            current_length = 0
+            current_message += 1
+
+    return messages

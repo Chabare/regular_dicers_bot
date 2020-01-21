@@ -16,7 +16,7 @@ class Ingredient:
         return cls(json_element.get("name"))
 
     def __str__(self):
-        return self.name
+        return f"_{self.name}_"
 
 
 @dataclass
@@ -36,7 +36,7 @@ class Cocktail:
         alcoholic = "💔" if not self.alcoholic else ""
         ingredients = "(" + ", ".join(map(str, self.ingredients)) + ")"
 
-        return " ".join([self.name, jumbo, alcoholic, ingredients])
+        return " ".join([f"*{self.name}*", jumbo, alcoholic, ingredients])
 
 
 def get_cocktails() -> List[Cocktail]:
