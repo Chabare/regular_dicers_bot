@@ -226,7 +226,7 @@ class Chat:
         sind_die_kurzen_dabei: bool = len([user for user in attendees if user.name in ["nadine", "tashina"]]) == 2
 
         if sind_die_kurzen_dabei:
-            condition: Callable[[str], bool] = lambda username: username not in ["nadine", "tashina"]
+            condition: Callable[[str], bool] = lambda username: username.lower() not in ["nadine", "tashina"]
 
         user_string = ", ".join(sorted([user.name for user in attendees if condition(user.name)]))
 
@@ -242,7 +242,7 @@ class Chat:
             message += "Niemand :("
         if absentees:
             self.logger.debug("attend message has absentees")
-            message += "\nNicht dabei: " + ", ".join([user.name for user in absentees])
+            message += "\nNicht dabei: " + ", ".join(sorted([user.name for user in absentees]))
         else:
             self.logger.debug("No absentees for event")
 
