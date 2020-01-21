@@ -683,13 +683,23 @@ class Bot:
 
     @Command()
     def set_cocktail(self, update: Update, context: CallbackContext):
+        user: User = context.user_data["user"]
+
         if not context.args:
             message = "You have to provide a cocktail name."
             self.logger.warning("No arguments have been provided, don't execute `set_cocktail`.")
             return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
-        drink_name: str = " ".join(context.args[:])
-        user: User = context.user_data["user"]
+        from . import cocktails
+        argument = " ".join(context.args[:])
+        cocktails = cocktails.get_cocktails()
+        try:
+            drink_id = int(argument)
+            drink_name = [cocktail.name for cocktail in cocktails if cocktail.id == drink_id][0]
+        except (ValueError, IndexError):
+            drink_name: str = argument
+            if argument not in [cocktail.name for cocktail in cocktails]:
+                return update.effective_message.reply_text(f"{argument} was not found in the list of cocktails")
 
         user.drink = drink_name
 
