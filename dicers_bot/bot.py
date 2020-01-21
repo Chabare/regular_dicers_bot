@@ -691,14 +691,14 @@ class Bot:
             return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
         from . import cocktails
-        argument = " ".join(context.args[:])
+        argument = " ".join(context.args[:]).strip()
         cocktails = cocktails.get_cocktails()
         try:
             drink_id = int(argument)
             drink_name = [cocktail.name for cocktail in cocktails if cocktail.id == drink_id][0]
         except (ValueError, IndexError):
             drink_name: str = argument
-            if argument not in [cocktail.name for cocktail in cocktails]:
+            if drink_name.lower() not in [cocktail.name.lower() for cocktail in cocktails]:
                 return update.effective_message.reply_text(f"{argument} was not found in the list of cocktails")
 
         user.drink = drink_name
