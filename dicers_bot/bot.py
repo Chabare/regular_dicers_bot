@@ -772,7 +772,7 @@ class Bot:
 
         from . import cocktails
 
-        messages = _split_messages([str(cocktail) for cocktail in cocktails.get_cocktails()])
+        messages = _split_messages([f"({cocktail.id}) {str(cocktail)}" for cocktail in cocktails.get_cocktails()])
         if not messages:
             messages = ["Cocktails couldn't be fetched"]
 

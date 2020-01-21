@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Dict, List
 
 from graphqlclient import GraphQLClient
@@ -21,6 +22,7 @@ class Ingredient:
 
 @dataclass
 class Cocktail:
+    id: int
     name: str
     jumbo: bool
     alcoholic: bool
@@ -29,7 +31,7 @@ class Cocktail:
     @classmethod
     def from_dict(cls, json_element: Dict) -> "Cocktail":
         ingredients = [Ingredient.from_dict(d) for d in json_element.get("ingredients")]
-        return cls(json_element.get("name"), json_element.get("jumbo"), json_element.get("alcoholic"), ingredients)
+        return cls(int(json_element.get("id")), json_element.get("name"), json_element.get("jumbo"), json_element.get("alcoholic"), ingredients)
 
     def __str__(self) -> str:
         jumbo = "(Jumbo)" if self.jumbo else ""
@@ -39,6 +41,7 @@ class Cocktail:
         return " ".join([f"*{self.name}*", jumbo, alcoholic, ingredients])
 
 
+@lru_cache
 def get_cocktails() -> List[Cocktail]:
     logger = create_logger("get_cocktails")
     logger.debug("Start")
@@ -48,6 +51,7 @@ def get_cocktails() -> List[Cocktail]:
     i = '''
     {
       cocktails {
+        id
         name
         jumbo
         alcoholic
