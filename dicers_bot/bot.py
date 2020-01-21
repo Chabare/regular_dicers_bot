@@ -15,7 +15,7 @@ from telegram.ext import CallbackContext, Updater
 
 from . import partyamt
 from .calendar import Calendar
-from .chat import Chat, User, Keyboard
+from .chat import Chat, ChatType, User, Keyboard
 from .config import Config
 from .decorators import Command
 from .event import Event
@@ -758,9 +758,19 @@ class Bot:
 
     @Command()
     def list_cocktails(self, update: Update, context: CallbackContext):
+        chat: Chat = context.chat_data["chat"]
+        user: User = context.user_data["user"]
+
+        if chat.type != ChatType.PRIVATE:
+            self.logger.debug(f"{user.name} tried list_cocktails in a group chat")
+
+            message = "This is only intended for private chats."
+            if not self.mute_user(chat.id, user, until_date=timedelta(minutes=15), reason=message):
+                update.effective_message.reply_text(message)
+
         from . import cocktails
         message = "\n".join([str(cocktail) for cocktail in cocktails.get_cocktails()])
         if not message:
             message = "Cocktails couldn't be fetched"
 
-        update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
