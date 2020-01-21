@@ -746,7 +746,7 @@ class Bot:
         except StopIteration:
             sentry_sdk.capture_exception()
             self.logger.warning(f"Couldn't find user {username} in users for chat {update.message.chat_id}", exc_info=True)
-            update.effective_message.reply_text(f"Can't mute {username} (not found in current chat).")
+            update.effective_message.reply_text(f"Can't kick {username} (not found in current chat).")
         else:
             try:
                 result = self.kick_user(chat, user)
