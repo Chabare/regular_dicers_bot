@@ -694,6 +694,7 @@ class Bot:
 
         argument = " ".join(context.args[:]).strip()
         cocktails = get_cocktails()
+
         try:
             drink_id = int(argument)
             drink_name = [cocktail.name for cocktail in cocktails if cocktail.id == drink_id][0]
@@ -773,7 +774,7 @@ class Bot:
         chat: Chat = context.chat_data["chat"]
         user: User = context.user_data["user"]
 
-        if chat.type != ChatType.PRIVATE:
+        if chat.type != ChatType.PRIVATE and chat.id != -1001204520396:
             self.logger.debug(f"{user.name} tried list_cocktails in a group chat")
 
             message = "This is only intended for private chats."
