@@ -1,6 +1,8 @@
+import itertools
 import json
 import re
 import tempfile
+import time
 from collections import Counter
 from datetime import datetime, timedelta
 from enum import Enum
@@ -783,15 +785,22 @@ class Bot:
 
             return None
 
-        messages = _split_messages([f"({cocktail.id}) {str(cocktail)}" for cocktail in get_cocktails()])
+        messages = []
+        for category, cocktails in itertools.groupby(get_cocktails(), key=lambda x: x.category):
+            cocktails: List[str] = [f"({cocktail.id}) {str(cocktail)}" for cocktail in cocktails]
+
+            split_messages: List[List[str]] = _split_messages([f"*{category}*\n{'‾' * len(category) * 2}"] + cocktails)
+            for m in split_messages:
+                messages.append("\n".join(m))
+
         if not messages:
             messages = ["Cocktails couldn't be fetched"]
 
         first = True
         for message in messages:
-            message = "\n".join(message)
-            update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN, disable_notification=first)
+            self.send_message(chat_id=chat.id, text=message, parse_mode=ParseMode.MARKDOWN, disable_notification=first)
             first = False
+            time.sleep(0.5)
 
     # @Command()
     def handle_inline_query(self, update: Update, context: CallbackContext):

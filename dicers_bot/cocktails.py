@@ -26,12 +26,13 @@ class Cocktail:
     name: str
     jumbo: bool
     alcoholic: bool
+    category: str
     ingredients: List[Ingredient]
 
     @classmethod
     def from_dict(cls, json_element: Dict) -> "Cocktail":
         ingredients = [Ingredient.from_dict(d) for d in json_element.get("ingredients")]
-        return cls(int(json_element.get("id")), json_element.get("name"), json_element.get("jumbo"), json_element.get("alcoholic"), ingredients)
+        return cls(int(json_element.get("id")), json_element.get("name"), json_element.get("jumbo"), json_element.get("alcoholic"), json_element.get("category"), ingredients)
 
     def __str__(self) -> str:
         jumbo = "(Jumbo)" if self.jumbo else ""
@@ -47,6 +48,7 @@ def get_cocktails() -> List[Cocktail]:
     logger.debug("Start")
 
     client = GraphQLClient('https://rd-backend.carstens.tech/graphql')
+    # client = GraphQLClient('http://localhost:8000/graphql')
 
     i = '''
     {
@@ -55,6 +57,7 @@ def get_cocktails() -> List[Cocktail]:
         name
         jumbo
         alcoholic
+        category
         ingredients {
             name
         }
