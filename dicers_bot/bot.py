@@ -687,7 +687,13 @@ class Bot:
 
     @Command()
     def set_cocktail(self, update: Update, context: CallbackContext):
+        chat: Chat = context.chat_data["chat"]
         user: User = context.user_data["user"]
+
+        if not chat.current_event:
+            self.logger.debug("Someone tried `set_cocktail` outside of an active event")
+            if not self.mute_user(chat.id, user, timedelta(minutes=15), reason="You can only set a cocktail during an active event"):
+                return update.effective_message.reply_text("You can only set a cocktail during an active event")
 
         if not context.args:
             message = "You have to provide a cocktail name."
