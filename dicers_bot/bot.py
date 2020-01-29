@@ -711,7 +711,12 @@ class Bot:
             if drink_name.lower() not in [cocktail.name.lower() for cocktail in cocktails]:
                 return update.effective_message.reply_text(f"{argument} was not found in the list of cocktails")
 
-        user.drink = drink_name
+        try:
+            event_user: User = [event_user for event_user in chat.current_event.attendees if event_user.id == user.id][0]
+        except IndexError:
+            self.logger.debug("Couldn't find user in current event attendees")
+            if not self.mute_user(chat.id, user, timedelta(minutes=15), "Tried to set a cocktail despite being absent."):
+                return update.effective_message.reply_text("You can't set a cocktail while being absent")
 
     @Command()
     def list_insults(self, update: Update, context: CallbackContext):
