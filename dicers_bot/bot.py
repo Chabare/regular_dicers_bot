@@ -698,7 +698,9 @@ class Bot:
         if not context.args:
             message = "You have to provide a cocktail name."
             self.logger.warning("No arguments have been provided, don't execute `set_cocktail`.")
-            return update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+            
+            if not self.mute_user(chat.id, user, timedelta(hours=1), message + " #itoldyouso"):
+                return update.effective_message.reply_text(f"[idiot](tg://user?id={user.id}) couldn't be muted", parse_mode=ParseMode.MARKDOWN)
 
         argument = " ".join(context.args[:]).strip()
         cocktails = get_cocktails()
