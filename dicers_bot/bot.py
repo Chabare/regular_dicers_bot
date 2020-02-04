@@ -701,6 +701,7 @@ class Bot:
             
             if not self.mute_user(chat.id, user, timedelta(hours=1), message + " #itoldyouso"):
                 return update.effective_message.reply_text(f"[idiot](tg://user?id={user.id}) couldn't be muted", parse_mode=ParseMode.MARKDOWN)
+            return
 
         argument = " ".join(context.args[:]).strip()
         cocktails = get_cocktails()
