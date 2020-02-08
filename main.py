@@ -47,7 +47,7 @@ def start(bot_token: str):
     logger.debug("Register command handlers")
     # CommandHandler
     dispatcher.add_handler(CommandHandler("register_main", bot.register_main))
-    dispatcher.add_handler(CommandHandler("remind_me", bot.remind_chat))
+    dispatcher.add_handler(CommandHandler("remind_me", bot.remind_chat, pass_args=True))
     dispatcher.add_handler(CommandHandler("show_dice", bot.show_dice))
     dispatcher.add_handler(CommandHandler("users", bot.show_users))
     dispatcher.add_handler(CommandHandler("price_stats", bot.price_stats))

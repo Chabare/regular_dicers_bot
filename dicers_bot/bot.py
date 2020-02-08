@@ -299,14 +299,16 @@ class Bot:
 
     @Command()
     def remind_chat(self, update: Update, context: CallbackContext) -> bool:
-        chat_id = context.chat_data["chat"].id
-        self.logger.debug(f"Remind chat: {chat_id}")
+        chat: Chat = context.chat_data["chat"]
+        args: str = " ".join(context.args)
 
-        self.logger.info("Show attend keyboard for: {}".format(chat_id))
+        self.logger.debug(f"Remind chat: {chat.id}")
 
-        result = self.chats[chat_id].show_attend_keyboard()
+        self.logger.info("Show attend keyboard for: {}".format(chat.id))
 
-        self.logger.debug("Result if showing attend keyboard for {}: {}".format(chat_id, result))
+        result = self.chats[chat.id].show_attend_keyboard(args)
+
+        self.logger.debug("Result if showing attend keyboard for {}: {}".format(chat.id, result))
 
         return bool(result)
 

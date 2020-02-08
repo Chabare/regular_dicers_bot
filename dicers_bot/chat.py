@@ -215,9 +215,12 @@ class Chat:
         self.logger.info("Answer attend callback")
         self.attend_callback.answer()
 
-    def _build_attend_message(self) -> str:
+    def _build_attend_message(self, message: Optional[str] = "") -> str:
         self.logger.info("Build attend message for event: %s", self.current_event)
-        message = "Wer ist dabei?" + "\nBisher: "
+        if not message:
+            message = "Wer ist dabei?"
+
+        message = f"{message}\nBisher: "
         attendees = self.current_event.attendees
         absentees = self.current_event.absentees
         not_voted = sorted(self.users.difference(attendees.union(absentees)), key=lambda user: user.name)
@@ -340,7 +343,7 @@ class Chat:
 
         return result
 
-    def show_attend_keyboard(self) -> Message:
+    def show_attend_keyboard(self, message: Optional[str]) -> Message:
         """
         :raises: TelegramError Raises TelegramError if the message couldn't be sent
         :return: Message Attend keyboard message
@@ -350,7 +353,7 @@ class Chat:
         # Start an event if none exists
         self.start_event(self.current_event)
 
-        message = self._build_attend_message()
+        message = self._build_attend_message(message)
         result = self._send_message(text=message, reply_markup=self.get_attend_keyboard())
 
         if result:
