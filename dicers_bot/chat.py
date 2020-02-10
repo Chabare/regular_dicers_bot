@@ -215,7 +215,7 @@ class Chat:
         self.logger.info("Answer attend callback")
         self.attend_callback.answer()
 
-    def _build_attend_message(self, message: Optional[str] = "") -> str:
+    def _build_attend_message(self, message: Optional[str] = None) -> str:
         self.logger.info("Build attend message for event: %s", self.current_event)
         if not message:
             message = "Wer ist dabei?"
@@ -343,7 +343,7 @@ class Chat:
 
         return result
 
-    def show_attend_keyboard(self, message: Optional[str]) -> Message:
+    def show_attend_keyboard(self, message: Optional[str] = None) -> Message:
         """
         :raises: TelegramError Raises TelegramError if the message couldn't be sent
         :return: Message Attend keyboard message
