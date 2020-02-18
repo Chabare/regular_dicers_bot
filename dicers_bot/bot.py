@@ -676,7 +676,7 @@ class Bot:
             return
 
         try:
-            user = next(filter(lambda x: x.name == username, chat.users))
+            user = next(filter(lambda x: x.name.lower() == username.lower(), chat.users))
         except StopIteration:
             sentry_sdk.capture_exception()
             self.logger.warn(f"Couldn't find user {username} in users for chat {update.message.chat_id}", exc_info=True)
