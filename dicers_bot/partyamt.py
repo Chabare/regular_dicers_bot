@@ -3,8 +3,11 @@ from typing import Dict, Optional
 
 from graphqlclient import GraphQLClient
 
+from dicers_bot import create_logger
+
 
 def add_event() -> Optional[Dict]:
+    log = create_logger("partyamt")
     client = GraphQLClient('https://partyamt.carstens.tech/graphql')
 
     i = '''
@@ -18,6 +21,8 @@ def add_event() -> Optional[Dict]:
     # TODO: find out what this throws, probably URLError
     # noinspection PyBroadException
     try:
+        log.debug("Executing graphql query")
         return client.execute(i)
-    except Exception:
+    except Exception as e:
+        log.error(f"Error while sending graphql {e}", exc_info=True)
         pass
