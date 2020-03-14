@@ -3,11 +3,9 @@ from typing import Dict, Optional
 
 from graphqlclient import GraphQLClient
 
-from dicers_bot import create_logger
-
 
 def add_event() -> Optional[Dict]:
-    log = create_logger("partyamt")
+    log = dicers_bot.create_logger("partyamt")
     client = GraphQLClient('https://partyamt.carstens.tech/graphql')
 
     i = '''
