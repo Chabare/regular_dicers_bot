@@ -85,3 +85,6 @@ class User:
         for event in events:
             if self in event.attendees:
                 yield event
+
+    def markdown_mention(self) -> str:
+        return f"[{self.name}](tg://user?id={self.id})"

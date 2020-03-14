@@ -66,7 +66,7 @@ def get_cocktails() -> List[Cocktail]:
     '''
 
     # TODO: find out what this throws, probably URLError
-    # noinspection PyBroadException
+    # noinspection PyBroadException 
     try:
         result = json.loads(client.execute(i))
         errors = result.get("errors")

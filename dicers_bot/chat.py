@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, Set, List, Dict, Any, Callable
 
-from telegram import Bot as TBot, Update
+from telegram import Bot as TBot, Update, ParseMode
 from telegram import Chat as TChat
 from telegram import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramError
 from telegram.error import BadRequest
@@ -206,7 +206,8 @@ class Chat:
 
         try:
             result: Message = self.attend_callback.edit_message_text(text=message,
-                                                                     reply_markup=self.get_attend_keyboard())
+                                                                     reply_markup=self.get_attend_keyboard(),
+                                                                     parse_mode=ParseMode.MARKDOWN)
             self.logger.info("edit_message_text returned: %s", result)
         except BadRequest:
             # This will happen if the message didn't change
@@ -251,7 +252,7 @@ class Chat:
 
         if not_voted:
             self.logger.debug("there are people who have not yet voted")
-            message += "\nKeine Antwort: " + ", ".join([user.name for user in not_voted])
+            message += "\nKeine Antwort: " + ", ".join([user.markdown_mention() for user in not_voted])
         else:
             self.logger.debug("everyone has voted")
 
@@ -354,7 +355,7 @@ class Chat:
         self.start_event(self.current_event)
 
         message = self._build_attend_message(message)
-        result = self._send_message(text=message, reply_markup=self.get_attend_keyboard())
+        result = self._send_message(text=message, reply_markup=self.get_attend_keyboard(), parse_mode=ParseMode.MARKDOWN)
 
         if result:
             self.current_keyboard = Keyboard.ATTEND
@@ -384,6 +385,8 @@ class Chat:
 
         for admin in chat_administrators:
             try:
+                # noinspection PyShadowingNames
+                # we don't actually shadow `user` (lhs) with the `user` inside the lambda (rhs).
                 user = next(filter(lambda user: user.id == admin.user.id, self.users))
                 administrators.add(user)
             except StopIteration:
@@ -404,7 +407,7 @@ class Chat:
         result = True
 
         try:
-            self.attend_callback.edit_message_text(text=self._build_attend_message())
+            self.attend_callback.edit_message_text(text=self._build_attend_message(), parse_mode=ParseMode.MARKDOWN)
             self.unpin_message()
         except (TelegramError, AttributeError) as e:
             self.logger.error(e)
