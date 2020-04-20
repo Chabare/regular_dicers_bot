@@ -332,6 +332,11 @@ class Chat:
 
             return None
 
+        if not self.current_event.attendees:
+            self.current_keyboard = None
+            self.logger.info("No attendees -> skip showing dice")
+            return
+
         self.logger.info("Showing dice")
         result = self._send_message(text=self._build_dice_message(), reply_markup=self.get_dice_keyboard())
         if result:
