@@ -136,7 +136,10 @@ if __name__ == "__main__":
 
     with open("secrets.json") as f:
         content = json.load(f)
-        token = content['token']
+        token = content.get('token', os.getenv("BOT_TOKEN"))
+        if not token:
+            raise ValueError("`token` not defined, either set `BOT_TOKEN` or `token` in `secrets.json`")
+
         try:
             sentry_dsn = content['sentry_dsn']
         except KeyError:
